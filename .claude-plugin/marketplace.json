@@ -1,0 +1,14 @@
+{
+  "name": "claude-status-local",
+  "owner": {
+    "name": "rmrogers"
+  },
+  "plugins": [
+    {
+      "name": "claude-status",
+      "source": "./",
+      "description": "Publish Claude Code lifecycle events to a local TCP/NDJSON broker.",
+      "version": "0.1.0"
+    }
+  ]
+}

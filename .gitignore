@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Runtime artifacts (never commit)
+*.sock
+*.pid
+*.log
+broker.log
+
+# Local-only plugin data dirs (defensive — these shouldn't ever be in the repo,
+# but if someone accidentally drops a copy during debugging, we ignore it)
+/sessions/
+/data/

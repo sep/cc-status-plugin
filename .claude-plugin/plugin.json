@@ -1,0 +1,8 @@
+{
+  "name": "claude-status",
+  "version": "0.1.0",
+  "description": "Publish Claude Code lifecycle events to a local TCP/NDJSON broker for external status indicators.",
+  "author": {
+    "name": "rmrogers"
+  }
+}
