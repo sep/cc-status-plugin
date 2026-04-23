@@ -105,6 +105,43 @@ def build_event(payload: dict) -> dict:
     return event
 
 
+_SLASH_PREFIX = "/claude-status:"
+
+
+def _handle_slash_command(prompt: str, session_id: str) -> None:
+    """
+    React to /claude-status:* slash commands at hook time, where we have an
+    authoritative session_id. Eliminates the "guess by newest broker"
+    heuristic that breaks under multi-session use.
+    """
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    try:
+        import pin  # noqa: WPS433
+    except Exception as e:
+        sys.stderr.write(f"[emit] cannot import pin module: {e}\n")
+        return
+
+    body = prompt[len(_SLASH_PREFIX):].strip()
+    if body == "attach":
+        pin.write_pin(session_id)
+        sys.stderr.write(f"[emit] /claude-status:attach -> pinned {session_id}\n")
+    elif body == "detach":
+        pin.remove_pin()
+        pin.remove_route(session_id)
+        sys.stderr.write(f"[emit] /claude-status:detach -> pin released + route cleared for {session_id}\n")
+    elif body.startswith("route "):
+        slot = body[len("route "):].strip()
+        ok, _ = pin.set_route(session_id, slot)
+        if ok:
+            sys.stderr.write(f"[emit] /claude-status:route {slot} -> {session_id} routed\n")
+        else:
+            sys.stderr.write(f"[emit] /claude-status:route: invalid slot '{slot}'\n")
+    elif body == "unroute":
+        pin.remove_route(session_id)
+        sys.stderr.write(f"[emit] /claude-status:unroute -> {session_id} unrouted\n")
+    # `status` is read-only; no action needed at hook time
+
+
 def main() -> None:
     try:
         payload = json.load(sys.stdin)
@@ -115,6 +152,13 @@ def main() -> None:
     if not session_id or not payload.get("hook_event_name"):
         sys.stderr.write("[emit] missing session_id or hook_event_name\n")
         return
+
+    # Hook-driven slash command handling. We do this BEFORE publishing to
+    # the broker, so that even if broker spawn fails, the action still ran.
+    if payload.get("hook_event_name") == "UserPromptSubmit":
+        prompt = (payload.get("prompt") or "").strip()
+        if prompt.startswith(_SLASH_PREFIX):
+            _handle_slash_command(prompt, session_id)
 
     port = read_port(session_id)
     sock = try_connect(port) if port else None
