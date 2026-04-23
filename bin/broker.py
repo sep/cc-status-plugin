@@ -40,31 +40,50 @@ def _port_listening(port: int) -> bool:
         return False
 
 
-def windows_mirror_dir() -> Path | None:
+def discovery_dir() -> Path | None:
     """
-    When running under WSL, return a Windows-visible mirror directory
-    so host-OS transports (e.g., a Windows .NET bridge) can discover
-    live brokers without traversing \\\\wsl$\\ paths.
+    Canonical well-known discovery location for broker state, pin, and
+    routes. Independent of CLAUDE_PLUGIN_DATA and CLAUDE_CONFIG_DIR, so
+    any bridge on the same machine can find Claude session state
+    regardless of how Claude was launched — including clean-room runs
+    with `CLAUDE_CONFIG_DIR=$(mktemp -d)` whose plugin data lives under
+    a temporary path that's invisible to the bridge's normal globbing.
 
-    Override: CLAUDE_STATUS_MIRROR_DIR
-    Auto-detect: if /proc/version mentions "microsoft" and
-    /mnt/c/Users/<user> exists, use /mnt/c/Users/<user>/.claude-status.
+    Locations:
+      - WSL:                 /mnt/c/Users/<user>/.claude-status
+                             (Windows-visible so a Windows bridge can read
+                             without crossing \\\\wsl$\\)
+      - Native Linux/macOS:  $HOME/.claude-status
+
+    Override: CLAUDE_STATUS_MIRROR_DIR env var (any platform).
     """
     override = os.environ.get("CLAUDE_STATUS_MIRROR_DIR")
     if override:
         return Path(override)
+
+    # WSL gets the Windows-side path so a Windows bridge can read.
     try:
-        if "microsoft" not in Path("/proc/version").read_text().lower():
-            return None
-    except Exception:
-        return None
-    user = os.environ.get("USER") or os.environ.get("USERNAME")
-    if not user:
-        return None
-    win_home = Path(f"/mnt/c/Users/{user}")
-    if not win_home.is_dir():
-        return None
-    return win_home / ".claude-status"
+        proc_version = Path("/proc/version").read_text().lower()
+    except (OSError, FileNotFoundError):
+        proc_version = ""
+    if "microsoft" in proc_version:
+        user = os.environ.get("USER") or os.environ.get("USERNAME")
+        if user:
+            win_home = Path(f"/mnt/c/Users/{user}")
+            if win_home.is_dir():
+                return win_home / ".claude-status"
+        return None  # WSL but Windows home unavailable; caller falls back
+
+    # Native (macOS / Linux / non-WSL).
+    home = Path.home()
+    if home and home.exists():
+        return home / ".claude-status"
+    return None
+
+
+# Backwards-compatible alias for the prior name. Remove after callers
+# settle on `discovery_dir`.
+windows_mirror_dir = discovery_dir
 
 
 class Broker:
