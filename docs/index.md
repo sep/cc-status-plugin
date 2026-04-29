@@ -47,7 +47,8 @@ ClaudePanel is three pieces working together:
   USB serial. Cross-platform: Windows, macOS, and Linux. Lives at
   [sep/cc-status-bridge](https://github.com/sep/cc-status-bridge).
 - **The firmware** runs on an ESP32-S3 driving a HUB75 RGB matrix
-  panel. Lives at *(firmware repo link to come)*.
+  panel. Lives at
+  [sep/cc-status-display](https://github.com/sep/cc-status-display).
 
 ## Project status
 
@@ -65,4 +66,4 @@ ESP32-S3 firmware from source.
 
 - Plugin (this site): [sep/cc-status-plugin](https://github.com/sep/cc-status-plugin)
 - Bridge: [sep/cc-status-bridge](https://github.com/sep/cc-status-bridge)
-- Firmware: *coming soon*
+- Firmware: [sep/cc-status-display](https://github.com/sep/cc-status-display)
