@@ -2,26 +2,16 @@ title: ClaudePanel
 description: External hardware status display for Claude Code sessions.
 theme: jekyll-theme-cayman
 
-# Project URL/path (sep.github.io/cc-status-plugin)
-url: https://sep.github.io
-baseurl: /cc-status-plugin
+# url + baseurl deliberately omitted — GitHub Pages injects the right
+# values for project sites (https://<org>.github.io/<repo>). Setting
+# them manually had been breaking Cayman's stylesheet link.
 
-# Cayman theme metadata — surfaces in header and footer
 show_downloads: false
 
-github:
-  is_user_page: false
-  repository_url: https://github.com/sep/cc-status-plugin
-  repository_name: cc-status-plugin
-  owner_name: sep
-  owner_url: https://github.com/sep
-
-# Markdown
 markdown: kramdown
 kramdown:
   syntax_highlighter: rouge
 
-# Skip these from publishing
 exclude:
   - README.md
   - Gemfile
