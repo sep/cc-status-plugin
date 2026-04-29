@@ -57,10 +57,15 @@ binaries of the bridge automatically on every release — see the
 [bridge releases page](https://github.com/sep/cc-status-bridge/releases)
 for `win-x64`, `linux-x64`, `osx-x64`, and `osx-arm64` builds.
 
-End-user installation guides, troubleshooting docs, and a hardware
-build guide are coming. For now, the project is best suited to
-developers who are comfortable building and flashing their own
-ESP32-S3 firmware from source.
+**Installing the bridge:** see the
+[bridge install page](https://sep.github.io/cc-status-bridge/) — it
+auto-detects your OS and shows the right steps for Windows, macOS, or
+Linux.
+
+**Installing the plugin and flashing the firmware:** end-user docs are
+still coming. For now, the project is best suited to developers who are
+comfortable building and flashing their own ESP32-S3 firmware from
+source.
 
 ## Repos
 
