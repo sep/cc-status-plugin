@@ -293,6 +293,48 @@ def cmd_unroute(session_id: str) -> int:
     return 0
 
 
+def reset_all() -> tuple[list[Path], list[Path]]:
+    """
+    Wipe the pin and all routes from every known data location.
+    Returns (pin_files_removed, route_files_removed) for reporting.
+    Idempotent — safe to run when nothing is set.
+    """
+    removed_pins: list[Path] = []
+    removed_routes: list[Path] = []
+    for base in read_bases():
+        p = pin_path(base)
+        if p.exists():
+            try:
+                p.unlink()
+                removed_pins.append(p)
+            except Exception as e:
+                sys.stderr.write(f"[reset] failed to remove {p}: {e}\n")
+        r = routes_path(base)
+        if r.exists():
+            try:
+                r.unlink()
+                removed_routes.append(r)
+            except Exception as e:
+                sys.stderr.write(f"[reset] failed to remove {r}: {e}\n")
+    return removed_pins, removed_routes
+
+
+def cmd_reset() -> int:
+    pins, routes = reset_all()
+    if not pins and not routes:
+        print("nothing to reset (no pin or routes were set)")
+        return 0
+    if pins:
+        print(f"removed {len(pins)} pin file(s):")
+        for p in pins:
+            print(f"  {p}")
+    if routes:
+        print(f"removed {len(routes)} route file(s):")
+        for p in routes:
+            print(f"  {p}")
+    return 0
+
+
 def cmd_status() -> int:
     sid = read_pin()
     print(f"pin:    {sid if sid else '(none — auto-switching enabled)'}")
@@ -326,6 +368,8 @@ def main() -> int:
             print("usage: pin.py unroute <session_id>", file=sys.stderr)
             return 2
         return cmd_unroute(sys.argv[2])
+    if cmd == "reset":
+        return cmd_reset()
     if cmd == "status":
         return cmd_status()
     print(f"unknown command: {cmd}", file=sys.stderr)

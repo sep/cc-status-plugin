@@ -139,6 +139,12 @@ def _handle_slash_command(prompt: str, session_id: str) -> None:
     elif body == "unroute":
         pin.remove_route(session_id)
         sys.stderr.write(f"[emit] /claude-status:unroute -> {session_id} unrouted\n")
+    elif body == "reset":
+        pins, routes = pin.reset_all()
+        sys.stderr.write(
+            f"[emit] /claude-status:reset -> "
+            f"removed {len(pins)} pin file(s), {len(routes)} route file(s)\n"
+        )
     # `status` is read-only; no action needed at hook time
 
 
