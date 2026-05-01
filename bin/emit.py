@@ -143,9 +143,13 @@ def _handle_slash_command(prompt: str, session_id: str) -> dict | None:
         pin.write_pin(session_id)
         sys.stderr.write(f"[emit] /claude-status:show {slot} -> pinned + routed {session_id}\n")
     elif body == "hide":
-        pin.remove_pin()
-        pin.remove_route(session_id)
-        sys.stderr.write(f"[emit] /claude-status:hide -> {session_id} pin + route cleared\n")
+        # v0.2.0 semantic: write a _hidden route entry. Bridge v0.2.0
+        # subscription manager skips sessions with this entry entirely.
+        # Pre-v0.2.0 bridges interpret _hidden as an unknown/invalid slot
+        # and degrade gracefully (no client field, falls back to default).
+        pin.remove_pin()  # legacy: release pin so old bridges don't follow
+        pin.hide_session(session_id)
+        sys.stderr.write(f"[emit] /claude-status:hide -> {session_id} hidden\n")
 
     # ---------------------------------------------------------------
     # Legacy verbs (deprecated; same behavior as their show/hide counterparts).
@@ -154,9 +158,10 @@ def _handle_slash_command(prompt: str, session_id: str) -> dict | None:
         pin.write_pin(session_id)
         sys.stderr.write(f"[emit] /claude-status:attach -> pinned {session_id} (deprecated; use /claude-status:show <slot>)\n")
     elif body == "detach":
+        # Legacy alias for hide (v0.2.0 semantics).
         pin.remove_pin()
-        pin.remove_route(session_id)
-        sys.stderr.write(f"[emit] /claude-status:detach -> pin released + route cleared (deprecated; use /claude-status:hide)\n")
+        pin.hide_session(session_id)
+        sys.stderr.write(f"[emit] /claude-status:detach -> {session_id} hidden (deprecated; use /claude-status:hide)\n")
     elif body.startswith("route "):
         slot = body[len("route "):].strip()
         ok, _ = pin.set_route(session_id, slot)
@@ -165,8 +170,11 @@ def _handle_slash_command(prompt: str, session_id: str) -> dict | None:
         else:
             sys.stderr.write(f"[emit] /claude-status:route: invalid slot '{slot}'\n")
     elif body == "unroute":
+        # Legacy: clears a session's explicit route, returning it to the
+        # firmware default slot. Use /claude-status:hide if you want it
+        # actually invisible.
         pin.remove_route(session_id)
-        sys.stderr.write(f"[emit] /claude-status:unroute -> {session_id} unrouted (deprecated; use /claude-status:hide)\n")
+        sys.stderr.write(f"[emit] /claude-status:unroute -> {session_id} route cleared (deprecated)\n")
     elif body == "reset":
         pins, routes = pin.reset_all()
         sys.stderr.write(

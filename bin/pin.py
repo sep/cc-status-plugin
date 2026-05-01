@@ -40,6 +40,7 @@ ROUTES_FILENAME        = "routes.json"
 PANEL_LAYOUT_FILENAME  = "panel_layout.json"
 
 SLOT_PATTERN = re.compile(r"^\d{1,2}[ab]?$")
+HIDDEN_SENTINEL = "_hidden"
 
 PANEL_DEFAULTS = {
     "panel_count":  1,
@@ -181,6 +182,18 @@ def read_pin() -> str | None:
 def is_valid_slot(slot: str) -> bool:
     """A valid slot is `<N>[a|b]`, e.g. "1", "1a", "1b", "2", "12a"."""
     return bool(SLOT_PATTERN.fullmatch(slot))
+
+
+def hide_session(session_id: str) -> list[Path]:
+    """
+    Mark a session as hidden by writing _hidden as its route value.
+    Bridge v0.2.0 reads this and skips the session entirely (no
+    subscription, no display). Equivalent to set_route with the
+    HIDDEN_SENTINEL slot, but bypasses the slot-format validation.
+    """
+    routes = read_routes()
+    routes[session_id] = HIDDEN_SENTINEL
+    return _write_routes(routes)
 
 
 def read_routes() -> dict[str, str]:
@@ -412,7 +425,8 @@ def cmd_status() -> int:
         print("routes:")
         for k, v in routes.items():
             marker = " ← pinned" if k == sid else ""
-            print(f"  {k} -> {v}{marker}")
+            display = "hidden" if v == HIDDEN_SENTINEL else v
+            print(f"  {k} -> {display}{marker}")
     layout = read_panel_layout()
     if layout:
         merged = {**PANEL_DEFAULTS, **layout}
