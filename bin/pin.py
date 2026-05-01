@@ -35,10 +35,19 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from broker import data_dir, windows_mirror_dir  # noqa: E402
 
 
-PIN_FILENAME    = "pin.json"
-ROUTES_FILENAME = "routes.json"
+PIN_FILENAME           = "pin.json"
+ROUTES_FILENAME        = "routes.json"
+PANEL_LAYOUT_FILENAME  = "panel_layout.json"
 
 SLOT_PATTERN = re.compile(r"^\d{1,2}[ab]?$")
+
+PANEL_DEFAULTS = {
+    "panel_count":  1,
+    "panel_width":  64,
+    "panel_height": 32,
+    "layout":       "horizontal",
+    "first_id":     1,
+}
 
 
 # ----------------------------- PATHS -----------------------------
@@ -49,6 +58,10 @@ def pin_path(base: Path) -> Path:
 
 def routes_path(base: Path) -> Path:
     return base / ROUTES_FILENAME
+
+
+def panel_layout_path(base: Path) -> Path:
+    return base / PANEL_LAYOUT_FILENAME
 
 
 def targets() -> list[Path]:
@@ -293,6 +306,60 @@ def cmd_unroute(session_id: str) -> int:
     return 0
 
 
+def read_panel_layout() -> dict | None:
+    """Return the panel layout from the first base that has one, or None."""
+    for base in read_bases():
+        p = panel_layout_path(base)
+        if not p.is_file():
+            continue
+        try:
+            data = json.loads(p.read_text())
+            if isinstance(data, dict):
+                return data
+        except Exception:
+            pass
+    return None
+
+
+def set_panel_layout(**fields) -> tuple[bool, list[Path]]:
+    """
+    Update the panel layout, merging caller-supplied fields with defaults
+    for unset keys. Returns (ok, paths_written). Validates panel_count
+    1..4, panel_width in {32,64}, panel_height in {16,32,64},
+    layout in {horizontal,vertical,serpentine}, first_id 1..99.
+    """
+    existing = read_panel_layout() or {}
+    merged = {**PANEL_DEFAULTS, **existing}
+    for k, v in fields.items():
+        if v is not None:
+            merged[k] = v
+
+    if not (1 <= merged["panel_count"] <= 4):
+        return False, []
+    if merged["panel_width"] not in (32, 64):
+        return False, []
+    if merged["panel_height"] not in (16, 32, 64):
+        return False, []
+    if merged["layout"] not in ("horizontal", "vertical", "serpentine"):
+        return False, []
+    if not (1 <= merged["first_id"] <= 99):
+        return False, []
+
+    payload = json.dumps(merged, indent=2)
+    written: list[Path] = []
+    for base in targets():
+        p = panel_layout_path(base)
+        try:
+            p.parent.mkdir(parents=True, exist_ok=True)
+            tmp = p.with_suffix(".tmp")
+            tmp.write_text(payload)
+            os.replace(tmp, p)
+            written.append(p)
+        except Exception as e:
+            sys.stderr.write(f"[panel] failed to write {p}: {e}\n")
+    return True, written
+
+
 def reset_all() -> tuple[list[Path], list[Path]]:
     """
     Wipe the pin and all routes from every known data location.
@@ -346,6 +413,14 @@ def cmd_status() -> int:
         for k, v in routes.items():
             marker = " ← pinned" if k == sid else ""
             print(f"  {k} -> {v}{marker}")
+    layout = read_panel_layout()
+    if layout:
+        merged = {**PANEL_DEFAULTS, **layout}
+        print(f"panels: {merged['panel_count']} × "
+              f"{merged['panel_width']}×{merged['panel_height']} "
+              f"({merged['layout']}, first_id={merged['first_id']})")
+    else:
+        print("panels: (default — single 64×32 panel)")
     return 0
 
 
@@ -370,6 +445,42 @@ def main() -> int:
         return cmd_unroute(sys.argv[2])
     if cmd == "reset":
         return cmd_reset()
+    if cmd == "configure":
+        # pin.py configure <panel_count> [width=W] [height=H] [layout=L] [first_id=N]
+        if len(sys.argv) < 3:
+            print("usage: pin.py configure <panel_count> [k=v ...]", file=sys.stderr)
+            return 2
+        try:
+            count = int(sys.argv[2])
+        except ValueError:
+            print(f"invalid panel_count '{sys.argv[2]}'", file=sys.stderr)
+            return 2
+        kwargs: dict = {"panel_count": count}
+        for tok in sys.argv[3:]:
+            if "=" not in tok:
+                print(f"expected key=value, got '{tok}'", file=sys.stderr)
+                return 2
+            k, v = tok.split("=", 1)
+            if k in ("panel_width", "panel_height", "first_id", "width", "height"):
+                if k == "width": k = "panel_width"
+                if k == "height": k = "panel_height"
+                try:
+                    kwargs[k] = int(v)
+                except ValueError:
+                    print(f"invalid integer for {k}: '{v}'", file=sys.stderr)
+                    return 2
+            else:
+                kwargs[k] = v
+        ok, paths = set_panel_layout(**kwargs)
+        if not ok:
+            print("invalid layout (panel_count 1-4, width 32|64, height 16|32|64, "
+                  "layout horizontal|vertical|serpentine, first_id 1-99)",
+                  file=sys.stderr)
+            return 1
+        print(f"panel layout updated: {kwargs}")
+        for p in paths:
+            print(f"  wrote {p}")
+        return 0
     if cmd == "status":
         return cmd_status()
     print(f"unknown command: {cmd}", file=sys.stderr)

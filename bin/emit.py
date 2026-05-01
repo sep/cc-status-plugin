@@ -108,43 +108,95 @@ def build_event(payload: dict) -> dict:
 _SLASH_PREFIX = "/claude-status:"
 
 
-def _handle_slash_command(prompt: str, session_id: str) -> None:
+def _handle_slash_command(prompt: str, session_id: str) -> dict | None:
     """
     React to /claude-status:* slash commands at hook time, where we have an
     authoritative session_id. Eliminates the "guess by newest broker"
     heuristic that breaks under multi-session use.
+
+    Returns an optional firmware_command dict that the caller should
+    inject into the broker event so the bridge can forward it verbatim
+    to the serial port (used for one-shot commands like identify that
+    don't fit the persistent-state-file pattern).
     """
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     try:
         import pin  # noqa: WPS433
     except Exception as e:
         sys.stderr.write(f"[emit] cannot import pin module: {e}\n")
-        return
+        return None
 
     body = prompt[len(_SLASH_PREFIX):].strip()
-    if body == "attach":
+
+    # ---------------------------------------------------------------
+    # v0.2.0 primary verbs: show / hide
+    # `show <slot>` = "this session belongs at <slot>" (pin + route)
+    # `hide`        = "this session is not on the display" (clear both)
+    # The old verbs below funnel through the same actions for back-compat.
+    # ---------------------------------------------------------------
+    if body.startswith("show "):
+        slot = body[len("show "):].strip()
+        ok, _ = pin.set_route(session_id, slot)
+        if not ok:
+            sys.stderr.write(f"[emit] /claude-status:show: invalid slot '{slot}'\n")
+            return None
         pin.write_pin(session_id)
-        sys.stderr.write(f"[emit] /claude-status:attach -> pinned {session_id}\n")
+        sys.stderr.write(f"[emit] /claude-status:show {slot} -> pinned + routed {session_id}\n")
+    elif body == "hide":
+        pin.remove_pin()
+        pin.remove_route(session_id)
+        sys.stderr.write(f"[emit] /claude-status:hide -> {session_id} pin + route cleared\n")
+
+    # ---------------------------------------------------------------
+    # Legacy verbs (deprecated; same behavior as their show/hide counterparts).
+    # ---------------------------------------------------------------
+    elif body == "attach":
+        pin.write_pin(session_id)
+        sys.stderr.write(f"[emit] /claude-status:attach -> pinned {session_id} (deprecated; use /claude-status:show <slot>)\n")
     elif body == "detach":
         pin.remove_pin()
         pin.remove_route(session_id)
-        sys.stderr.write(f"[emit] /claude-status:detach -> pin released + route cleared for {session_id}\n")
+        sys.stderr.write(f"[emit] /claude-status:detach -> pin released + route cleared (deprecated; use /claude-status:hide)\n")
     elif body.startswith("route "):
         slot = body[len("route "):].strip()
         ok, _ = pin.set_route(session_id, slot)
         if ok:
-            sys.stderr.write(f"[emit] /claude-status:route {slot} -> {session_id} routed\n")
+            sys.stderr.write(f"[emit] /claude-status:route {slot} -> {session_id} routed (deprecated; use /claude-status:show {slot})\n")
         else:
             sys.stderr.write(f"[emit] /claude-status:route: invalid slot '{slot}'\n")
     elif body == "unroute":
         pin.remove_route(session_id)
-        sys.stderr.write(f"[emit] /claude-status:unroute -> {session_id} unrouted\n")
+        sys.stderr.write(f"[emit] /claude-status:unroute -> {session_id} unrouted (deprecated; use /claude-status:hide)\n")
     elif body == "reset":
         pins, routes = pin.reset_all()
         sys.stderr.write(
             f"[emit] /claude-status:reset -> "
             f"removed {len(pins)} pin file(s), {len(routes)} route file(s)\n"
         )
+    elif body.startswith("configure "):
+        rest = body[len("configure "):].strip()
+        try:
+            count = int(rest.split()[0])
+        except (ValueError, IndexError):
+            sys.stderr.write(f"[emit] /claude-status:configure: invalid panel count '{rest}'\n")
+            return None
+        ok, _ = pin.set_panel_layout(panel_count=count)
+        if ok:
+            sys.stderr.write(f"[emit] /claude-status:configure -> panel_count={count}\n")
+        else:
+            sys.stderr.write(f"[emit] /claude-status:configure: panel_count {count} out of range (1-4)\n")
+    elif body == "identify" or body.startswith("identify "):
+        rest = body[len("identify"):].strip()
+        duration_ms = 5000
+        if rest:
+            try:
+                duration_ms = int(float(rest) * 1000)
+            except ValueError:
+                sys.stderr.write(f"[emit] /claude-status:identify: invalid duration '{rest}'\n")
+                return None
+        sys.stderr.write(f"[emit] /claude-status:identify -> duration_ms={duration_ms}\n")
+        return {"type": "identify", "duration_ms": duration_ms}
+    return None
     # `status` is read-only; no action needed at hook time
 
 
@@ -161,10 +213,11 @@ def main() -> None:
 
     # Hook-driven slash command handling. We do this BEFORE publishing to
     # the broker, so that even if broker spawn fails, the action still ran.
+    firmware_command: dict | None = None
     if payload.get("hook_event_name") == "UserPromptSubmit":
         prompt = (payload.get("prompt") or "").strip()
         if prompt.startswith(_SLASH_PREFIX):
-            _handle_slash_command(prompt, session_id)
+            firmware_command = _handle_slash_command(prompt, session_id)
 
     port = read_port(session_id)
     sock = try_connect(port) if port else None
@@ -179,7 +232,10 @@ def main() -> None:
             return
 
     try:
-        line = json.dumps(build_event(payload)).encode("utf-8") + b"\n"
+        event = build_event(payload)
+        if firmware_command is not None:
+            event["firmware_command"] = firmware_command
+        line = json.dumps(event).encode("utf-8") + b"\n"
         sock.sendall(b"PUB\n" + line)
     except Exception as e:
         sys.stderr.write(f"[emit] send failed: {e}\n")
