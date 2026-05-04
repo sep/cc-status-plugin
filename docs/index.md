@@ -50,24 +50,81 @@ ClaudePanel is three pieces working together:
   panel. Lives at
   [sep/cc-status-display](https://github.com/sep/cc-status-display).
 
-## Project status
+## Setup
 
-ClaudePanel is in active development. The bridge ships as a tray app
-(Windows notification area / macOS menu bar / Linux status icon) with
-platform-native installers — `Setup.exe` on Windows, `.dmg` on macOS,
-`.AppImage` on Linux — published automatically on every release. Once
-installed it runs in the background, auto-starts at login, and you
-never have to think about it again.
+ClaudePanel has three pieces and they need to come up in a specific
+order: **firmware first**, then **bridge**, then **plugin**. Each
+piece has detailed docs of its own — this page is the orientation
+that ties them together.
 
-**Installing the bridge:** see the
-[bridge install page](https://sep.github.io/cc-status-bridge/) — it
-auto-detects your OS and shows the right download. No terminal needed
-unless you want one; the CLI is still there for power users and CI.
+### 1. Flash the firmware
 
-**Installing the plugin and flashing the firmware:** end-user docs are
-still coming. For now, the project is best suited to developers who are
-comfortable building and flashing their own ESP32-S3 firmware from
-source.
+Build and flash the ESP32-S3 firmware to your panel hardware. You'll
+need ESP-IDF v6.0 installed locally and a HUB75 panel wired up
+(default expectation is a 64×32 WaveShare RGB-Matrix-P2.5; multi-
+panel chains are supported).
+
+→ **[github.com/sep/cc-status-display](https://github.com/sep/cc-status-display)**
+
+Once flashed, plug the ESP32-S3 into your computer over USB. It
+enumerates as a serial device — `COM5` on Windows, `/dev/cu.usbmodem*`
+on macOS, `/dev/ttyACM0` on Linux — and the panel boots into an
+"unknown" state, ready to receive events.
+
+### 2. Install + configure the bridge
+
+The bridge is a system-tray app (Windows notification area / macOS
+menu bar / Linux status icon) that subscribes to the plugin's local
+broker and forwards each Claude Code event to the firmware over USB
+serial. Cross-platform installers ship on every release.
+
+→ **[sep.github.io/cc-status-bridge](https://sep.github.io/cc-status-bridge/)**
+
+That page auto-detects your OS and shows the right download
+(`Setup.exe` on Windows, `.dmg` on macOS, `.AppImage` on Linux). It
+also covers the OS-specific quirks (SmartScreen on Windows,
+Gatekeeper on macOS, tray-host extensions on GNOME). After install,
+right-click the tray icon → **Connect device** to point the bridge
+at the ClaudePanel you connected in step 1.
+
+### 3. Install the plugin
+
+The plugin (this repo) is the Claude Code half of the system: it
+hooks every lifecycle event and publishes the state stream the
+bridge subscribes to. Install it from inside Claude Code:
+
+```
+/plugin marketplace add sep/cc-status-plugin
+/plugin install claude-status@claude-status-local
+```
+
+Then run the one-time permission setup so Claude Code stops asking
+to approve every plugin-driven Bash invocation:
+
+```
+/claude-status:permit
+```
+
+If you have a multi-panel chain (rather than a single 64×32), tell
+the firmware once — the layout is cached in NVS so it survives
+reboots:
+
+```
+/claude-status:configure 2
+```
+
+`/claude-status:help` lists every slash command the plugin provides.
+
+### Verify
+
+Send any prompt in Claude Code. The panel should light up — yellow
+while Claude is working, green when it goes idle. Run
+`/claude-status:identify` to flash each physical panel's slot ID
+large and centered, so you can confirm wiring matches what the
+firmware thinks the layout is.
+
+If nothing happens, the bridge's tray icon's **Show logs** menu
+item is the first place to look.
 
 ## Repos
 
