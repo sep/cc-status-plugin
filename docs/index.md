@@ -52,15 +52,17 @@ ClaudePanel is three pieces working together:
 
 ## Project status
 
-ClaudePanel is in active development. We're shipping cross-platform
-binaries of the bridge automatically on every release — see the
-[bridge releases page](https://github.com/sep/cc-status-bridge/releases)
-for `win-x64`, `linux-x64`, `osx-x64`, and `osx-arm64` builds.
+ClaudePanel is in active development. The bridge ships as a tray app
+(Windows notification area / macOS menu bar / Linux status icon) with
+platform-native installers — `Setup.exe` on Windows, `.dmg` on macOS,
+`.AppImage` on Linux — published automatically on every release. Once
+installed it runs in the background, auto-starts at login, and you
+never have to think about it again.
 
 **Installing the bridge:** see the
 [bridge install page](https://sep.github.io/cc-status-bridge/) — it
-auto-detects your OS and shows the right steps for Windows, macOS, or
-Linux.
+auto-detects your OS and shows the right download. No terminal needed
+unless you want one; the CLI is still there for power users and CI.
 
 **Installing the plugin and flashing the firmware:** end-user docs are
 still coming. For now, the project is best suited to developers who are
