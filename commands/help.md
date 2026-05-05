@@ -7,36 +7,38 @@ Print the synopsis below to the user verbatim. No preamble, no follow-up questio
 ```
 claude-status — slash commands
 
+The panel has numbered slots (1, 2, ...). Slash commands move your
+Claude session onto, off, or between those slots.
+
   Everyday:
-    /claude-status:show <slot>     Send this session's status to a panel
-                                   slot (e.g. 1, 2a, 2b). Routes + pins.
+    /claude-status:show <slot>     Send this session's state to slot N
+                                   (e.g. 1, 2b). Slot stays bound to
+                                   you until you /hide.
     /claude-status:hide            Stop sending this session to the
-                                   display. Clears route + pin.
-    /claude-status:status          Show what's currently pinned and
-                                   what each panel slot is routing.
+                                   display.
+    /claude-status:status          Show which sessions are routed
+                                   to which slots.
     /claude-status:identify [N]    Flash each panel's slot ID for N
-                                   seconds (default 5) so you can tell
+                                   seconds (default 5) so you can see
                                    which physical panel is which slot.
 
   Setup:
     /claude-status:configure <N>   Tell the firmware your panel-chain
                                    length (1-4). Persists in NVS.
-    /claude-status:reset           Wipe the entire pin + routes table.
-                                   Use when state has gotten kludged.
+    /claude-status:permit          One-time: allowlist the plugin's
+                                   Bash invocations so commands stop
+                                   prompting for permission.
+    /claude-status:reset           Wipe all sessions' slot bindings —
+                                   clean slate.
 
-  Granular (when show/hide aren't enough):
-    /claude-status:route <slot>    Route this session's events to a
-                                   slot, without changing the pin.
-    /claude-status:unroute         Drop this session's route only.
-    /claude-status:attach          Pin transport to this session only.
-    /claude-status:detach          Release pin AND remove route.
-
-  Permissions:
-    /claude-status:permit          One-time setup: allowlist the
-                                   plugin's hook commands in
-                                   ~/.claude/settings.json so Claude
-                                   stops asking for permission on
-                                   every plugin-driven hook.
+  Power users only (these split /show and /hide into their two
+  sub-operations: route = which slot, pin = exclusive transport claim):
+    /claude-status:route <slot>    Route to a slot without claiming
+                                   the transport.
+    /claude-status:unroute         Drop route only.
+    /claude-status:attach          Claim the transport for this
+                                   session (no route change).
+    /claude-status:detach          Drop both claim and route.
 
   Help:
     /claude-status:help            This message.

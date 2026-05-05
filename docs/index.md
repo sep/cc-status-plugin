@@ -251,6 +251,60 @@ item is the first place to look.
 
 <hr class="section-divider">
 
+## Commands
+
+The panel has numbered **slots** (`1`, `2`, ...) and optional half-slots
+(`1a`, `1b`, ...) that each render one Claude session's state. Slash
+commands move sessions between slots; bridge subcommands manage the
+bridge process itself. Most users only ever need the everyday tier.
+
+### Plugin slash commands
+
+Run these inside Claude Code (with the plugin installed).
+
+#### Everyday
+
+| Command                         | What it does                                            |
+|---------------------------------|---------------------------------------------------------|
+| `/claude-status:show <slot>`    | Send this session's state to slot N (e.g. `1`, `2b`).   |
+| `/claude-status:hide`           | Stop sending this session to the display.               |
+| `/claude-status:status`         | Show which sessions are routed to which slots.          |
+| `/claude-status:identify [N]`   | Flash each panel's slot ID for N seconds (default 5).   |
+
+#### Setup
+
+| Command                         | What it does                                            |
+|---------------------------------|---------------------------------------------------------|
+| `/claude-status:configure <N>`  | Tell the firmware your panel-chain length (1–4).        |
+| `/claude-status:permit`         | One-time: allowlist the plugin's Bash invocations so    |
+|                                 | commands stop prompting.                                |
+| `/claude-status:reset`          | Wipe all session slot bindings — clean slate.           |
+| `/claude-status:help`           | List every slash command, briefly.                      |
+
+#### Power users only
+
+These split `show` and `hide` into their two sub-operations: a **route**
+(which slot a session lands on) and a **pin** (which session exclusively
+owns the bridge's transport). Most users don't need them — `show` /
+`hide` cover the everyday flow.
+
+| Command                       | What it does                                              |
+|-------------------------------|-----------------------------------------------------------|
+| `/claude-status:route <slot>` | Set a route only; don't claim the transport.              |
+| `/claude-status:unroute`      | Drop the route only.                                      |
+| `/claude-status:attach`       | Claim the transport for this session; don't change route. |
+| `/claude-status:detach`       | Drop both claim and route.                                |
+
+### Bridge CLI
+
+Run these in a terminal (or in pwsh on Windows). Most users won't need
+to — the tray menu covers Connect device / Show logs / Pause / Quit.
+The bridge install page documents each subcommand in detail.
+
+→ **[bridge subcommand reference](https://sep.github.io/cc-status-bridge/#cli-usage)**
+
+<hr class="section-divider">
+
 ## Repos
 
 - Plugin (this site): [sep/cc-status-plugin](https://github.com/sep/cc-status-plugin)
