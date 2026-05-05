@@ -16,3 +16,25 @@ exclude:
   - README.md
   - Gemfile
   - Gemfile.lock
+
+# ---------------------------------------------------------------------------
+# Cross-project URLs — referenced from index.md via {{ site.<name> }}.
+#
+# While the repos are private, GitHub Pages serves them at obfuscated
+# slugs (`*.pages.github.io`) rather than the predictable
+# `<org>.github.io/<repo>/` form. When the repos go public, swap each
+# `_site` value below to the corresponding `https://<org>.github.io/<repo>/`
+# URL and Jekyll rebuilds the page with every link updated. One edit per
+# move, no link audits across markdown.
+#
+# Verify current values with:
+#   gh api repos/sep/<repo-name>/pages
+# ---------------------------------------------------------------------------
+
+bridge_repo:    https://github.com/sep/cc-status-bridge
+bridge_site:    https://miniature-dollop-g4kpjol.pages.github.io/
+
+firmware_repo:  https://github.com/sep/cc-status-display
+firmware_site:  https://urban-adventure-6q81oje.pages.github.io/
+
+plugin_repo:    https://github.com/sep/cc-status-plugin

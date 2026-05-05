@@ -187,7 +187,7 @@ need ESP-IDF v6.0 installed locally and a HUB75 panel wired up
 (default expectation is a 64×32 WaveShare RGB-Matrix-P2.5; multi-
 panel chains are supported).
 
-→ **[github.com/sep/cc-status-display](https://github.com/sep/cc-status-display)**
+→ **[the firmware repo on GitHub]({{ site.firmware_site }})**
 
 Once flashed, plug the ESP32-S3 into your computer over USB. It
 enumerates as a serial device — `COM5` on Windows, `/dev/cu.usbmodem*`
@@ -201,7 +201,7 @@ menu bar / Linux status icon) that subscribes to the plugin's local
 broker and forwards each Claude Code event to the firmware over USB
 serial. Cross-platform installers ship on every release.
 
-→ **[sep.github.io/cc-status-bridge](https://sep.github.io/cc-status-bridge/)**
+→ **[the bridge install page]({{ site.bridge_site }})**
 
 That page auto-detects your OS and shows the right download
 (`Setup.exe` on Windows, `.dmg` on macOS, `.AppImage` on Linux). It
@@ -301,12 +301,12 @@ Run these in a terminal (or in pwsh on Windows). Most users won't need
 to — the tray menu covers Connect device / Show logs / Pause / Quit.
 The bridge install page documents each subcommand in detail.
 
-→ **[bridge subcommand reference](https://sep.github.io/cc-status-bridge/#cli-usage)**
+→ **[bridge subcommand reference]({{ site.bridge_site }}#cli-usage)**
 
 <hr class="section-divider">
 
 ## Repos
 
-- Plugin (this site): [sep/cc-status-plugin](https://github.com/sep/cc-status-plugin)
-- Bridge: [sep/cc-status-bridge](https://github.com/sep/cc-status-bridge)
-- Firmware: [sep/cc-status-display](https://github.com/sep/cc-status-display)
+- Plugin (this site): [cc-status-plugin]({{ site.plugin_repo }})
+- Bridge: [cc-status-bridge]({{ site.bridge_repo }})
+- Firmware: [cc-status-display]({{ site.firmware_repo }})
