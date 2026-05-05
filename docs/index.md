@@ -16,60 +16,105 @@ glance at a panel on your desk instead of watching your terminal.
 > we've got hardware in front of a camera.*
 
 <style>
+  /* ---- feature cards (the three "panelly" buttons) ---- */
   .feature-cards {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-    margin: 2rem 0 2.5rem;
+    gap: 1.25rem;
+    margin: 2.5rem 0 3rem;
   }
   @media (max-width: 600px) {
     .feature-cards { grid-template-columns: 1fr; }
   }
   .feature-card {
-    display: block;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    min-height: 200px;
     padding: 1.5rem 1.25rem;
-    border: 1px solid #d0d7de;
-    border-radius: 8px;
+    border-radius: 10px;
+    overflow: hidden;
     text-decoration: none !important;
-    color: #24292f;
-    background: #fff;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
-    text-align: center;
+    color: #fff !important;
+    background-color: #1f2933;
+    background-size: cover;
+    background-position: center;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+    text-align: left;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
   }
+  /* dark + green gradient overlay so text stays readable
+     regardless of which photo loremflickr happens to hand back */
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(15, 32, 28, 0.78) 0%,
+      rgba(21, 153, 87, 0.55) 100%
+    );
+    transition: opacity 0.18s ease;
+    z-index: 1;
+  }
+  .feature-card > * { position: relative; z-index: 2; }
   .feature-card:hover {
-    border-color: #159957;
-    box-shadow: 0 2px 12px rgba(21, 153, 87, 0.18);
-    transform: translateY(-2px);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 18px rgba(21, 153, 87, 0.28);
   }
+  .feature-card:hover::before { opacity: 0.85; }
   .feature-card .feature-card-title {
     display: block;
-    margin: 0 0 0.4rem;
-    font-size: 1.18em;
+    margin: 0 0 0.45rem;
+    font-size: 1.35em;
     font-weight: 600;
-    color: #24292f;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
   }
   .feature-card .feature-card-sub {
     display: block;
-    color: #57606a;
-    font-size: 0.92em;
-    line-height: 1.4;
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 0.95em;
+    line-height: 1.45;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  }
+
+  /* ---- section dividers ---- */
+  .section-divider {
+    border: 0;
+    height: 3px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      #159957 50%,
+      transparent 100%
+    );
+    margin: 4rem auto 3rem;
+    max-width: 60%;
+    border-radius: 2px;
   }
 </style>
 
 <div class="feature-cards">
-  <a class="feature-card" href="#the-panel">
+  <a class="feature-card" href="#the-panel"
+     style="background-image: url('https://loremflickr.com/600/300/led,matrix,pixel');">
     <span class="feature-card-title">The Panel</span>
     <span class="feature-card-sub">What you see, and what each state means.</span>
   </a>
-  <a class="feature-card" href="#installation">
+  <a class="feature-card" href="#installation"
+     style="background-image: url('https://loremflickr.com/600/300/circuit,electronics,solder');">
     <span class="feature-card-title">Installation</span>
     <span class="feature-card-sub">Firmware → bridge → plugin, in that order.</span>
   </a>
-  <a class="feature-card" href="#how-it-works">
+  <a class="feature-card" href="#how-it-works"
+     style="background-image: url('https://loremflickr.com/600/300/network,data,signal');">
     <span class="feature-card-title">How it works</span>
     <span class="feature-card-sub">From prompt to pixels in three hops.</span>
   </a>
 </div>
+
+<hr class="section-divider">
 
 ## The Panel
 
@@ -95,6 +140,8 @@ A single firmware instance can drive one panel or a chain of up to
 four 64×32 panels, with each panel optionally split into two
 half-panel "client slots" so multiple Claude Code sessions can share a
 display.
+
+<hr class="section-divider">
 
 ## How it works
 
@@ -123,6 +170,8 @@ hundred milliseconds of you pressing Enter.
 
 Each piece lives in its own repo and is the source of truth for its
 own internals. See [Repos](#repos) at the bottom.
+
+<hr class="section-divider">
 
 ## Installation
 
@@ -199,6 +248,8 @@ firmware thinks the layout is.
 
 If nothing happens, the bridge's tray icon's **Show logs** menu
 item is the first place to look.
+
+<hr class="section-divider">
 
 ## Repos
 
