@@ -15,7 +15,66 @@ glance at a panel on your desk instead of watching your terminal.
 > *Photo of the device displaying different states will land here once
 > we've got hardware in front of a camera.*
 
-## What it shows
+<style>
+  .feature-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin: 2rem 0 2.5rem;
+  }
+  @media (max-width: 600px) {
+    .feature-cards { grid-template-columns: 1fr; }
+  }
+  .feature-card {
+    display: block;
+    padding: 1.5rem 1.25rem;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    text-decoration: none !important;
+    color: #24292f;
+    background: #fff;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+    text-align: center;
+  }
+  .feature-card:hover {
+    border-color: #159957;
+    box-shadow: 0 2px 12px rgba(21, 153, 87, 0.18);
+    transform: translateY(-2px);
+  }
+  .feature-card .feature-card-title {
+    display: block;
+    margin: 0 0 0.4rem;
+    font-size: 1.18em;
+    font-weight: 600;
+    color: #24292f;
+  }
+  .feature-card .feature-card-sub {
+    display: block;
+    color: #57606a;
+    font-size: 0.92em;
+    line-height: 1.4;
+  }
+</style>
+
+<div class="feature-cards">
+  <a class="feature-card" href="#the-panel">
+    <span class="feature-card-title">The Panel</span>
+    <span class="feature-card-sub">What you see, and what each state means.</span>
+  </a>
+  <a class="feature-card" href="#installation">
+    <span class="feature-card-title">Installation</span>
+    <span class="feature-card-sub">Firmware → bridge → plugin, in that order.</span>
+  </a>
+  <a class="feature-card" href="#how-it-works">
+    <span class="feature-card-title">How it works</span>
+    <span class="feature-card-sub">From prompt to pixels in three hops.</span>
+  </a>
+</div>
+
+## The Panel
+
+The panel renders one of six states at any given time, picked to be
+distinguishable at a glance from across a desk:
 
 | State          | Meaning                                           |
 |----------------|---------------------------------------------------|
@@ -28,12 +87,33 @@ glance at a panel on your desk instead of watching your terminal.
 |                | history — usually a 10–60s pause.                 |
 | **error**      | A tool call returned an error.                    |
 
-The panel also displays counts of running subagents and active tasks,
-so you can keep an eye on parallel work without scrolling.
+Alongside the state, the panel also shows running counts of subagents
+and active tasks — handy when you've kicked off parallel work and want
+to monitor it without scrolling the terminal.
 
-## How it's built
+A single firmware instance can drive one panel or a chain of up to
+four 64×32 panels, with each panel optionally split into two
+half-panel "client slots" so multiple Claude Code sessions can share a
+display.
 
-ClaudePanel is three pieces working together:
+## How it works
+
+When you write a prompt in Claude Code, ClaudePanel converts that
+keystroke into pixels in three hops:
+
+1. **The plugin** *(this repo)* hooks every Claude Code lifecycle event
+   — `UserPromptSubmit`, `Stop`, `PreToolUse`, `PostCompact`, and so on
+   — and publishes a small JSON event for each one to a local TCP
+   broker on your machine.
+2. **The bridge** subscribes to the broker, runs a state machine over
+   the event stream (idle / working / thinking / blocked / compacting
+   / error), and forwards each state change as a one-line JSON message
+   over USB serial.
+3. **The firmware** on the ESP32-S3 reads the serial line, picks the
+   right palette and glyph, and updates the HUB75 panel's framebuffer.
+
+The whole loop is fast enough that the panel reacts within a few
+hundred milliseconds of you pressing Enter.
 
 ```
  Claude Code  ──►  Plugin  ──►  Bridge  ──►  Firmware  ──►  Display
@@ -41,16 +121,10 @@ ClaudePanel is three pieces working together:
                               platform)                   panel)
 ```
 
-- **The plugin** *(this repo)* listens to Claude Code's lifecycle hooks
-  and publishes session events over a local TCP broker.
-- **The bridge** subscribes to the broker and forwards each event over
-  USB serial. Cross-platform: Windows, macOS, and Linux. Lives at
-  [sep/cc-status-bridge](https://github.com/sep/cc-status-bridge).
-- **The firmware** runs on an ESP32-S3 driving a HUB75 RGB matrix
-  panel. Lives at
-  [sep/cc-status-display](https://github.com/sep/cc-status-display).
+Each piece lives in its own repo and is the source of truth for its
+own internals. See [Repos](#repos) at the bottom.
 
-## Setup
+## Installation
 
 ClaudePanel has three pieces and they need to come up in a specific
 order: **firmware first**, then **bridge**, then **plugin**. Each
