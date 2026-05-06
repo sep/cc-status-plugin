@@ -60,7 +60,11 @@ def spawn_broker(session_id: str) -> int | None:
     broker_path = Path(root) / "bin" / "broker.py"
     with open(log_file, "ab") as lf:
         subprocess.Popen(
-            ["python3", str(broker_path), session_id],
+            # sys.executable is the exact Python interpreter currently
+            # running emit.py — avoids the "is python3 on PATH" class of
+            # question on Windows where the python.org installer only
+            # puts `python.exe` (not `python3.exe`) on PATH.
+            [sys.executable, str(broker_path), session_id],
             stdout=lf,
             stderr=lf,
             stdin=subprocess.DEVNULL,

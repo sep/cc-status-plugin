@@ -214,7 +214,17 @@ at the ClaudePanel you connected in step 1.
 
 The plugin (this repo) is the Claude Code half of the system: it
 hooks every lifecycle event and publishes the state stream the
-bridge subscribes to. Install it from inside Claude Code:
+bridge subscribes to.
+
+**Prerequisite:** Python 3 must be on your `PATH` as the command
+`python` (not `python3`). On Windows that's the default for the
+official python.org and Microsoft Store installers. On macOS it's
+fine via Homebrew or the python.org installer. On most modern Linux
+distros it's fine; on a default **Ubuntu / Debian** install, run
+`sudo apt install python-is-python3` once if `python --version`
+errors. WSL is the same as whichever Linux distro it runs.
+
+Install the plugin from inside Claude Code:
 
 ```
 /plugin marketplace add sep/cc-status-plugin

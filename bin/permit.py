@@ -21,10 +21,10 @@ def main():
     # form it sees depends on shell-expansion timing — including both
     # makes the allowlist robust to either.
     patterns = [
-        'Bash(python3 "${CLAUDE_PLUGIN_ROOT}/bin/pin.py":*)',
-        'Bash(python3 "${CLAUDE_PLUGIN_ROOT}/bin/emit.py":*)',
-        f'Bash(python3 "{pin_py}":*)',
-        f'Bash(python3 "{emit_py}":*)',
+        'Bash(python "${CLAUDE_PLUGIN_ROOT}/bin/pin.py":*)',
+        'Bash(python "${CLAUDE_PLUGIN_ROOT}/bin/emit.py":*)',
+        f'Bash(python "{pin_py}":*)',
+        f'Bash(python "{emit_py}":*)',
     ]
 
     settings_path = Path.home() / ".claude" / "settings.json"
