@@ -17,6 +17,15 @@ import sys
 import time
 from pathlib import Path
 
+# Force UTF-8 on stderr — same reason as pin.py: avoids
+# UnicodeEncodeError on Windows when stderr writes contain non-ANSI-
+# codepage glyphs. emit.py is meant to be silent on success; this just
+# makes failure messages survive the journey.
+try:
+    sys.stderr.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
+except (AttributeError, TypeError, ValueError):
+    pass
+
 SPAWN_TIMEOUT_SECONDS = 3.0
 CONNECT_TIMEOUT_SECONDS = 0.5
 

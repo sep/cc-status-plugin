@@ -31,6 +31,18 @@ import sys
 import time
 from pathlib import Path
 
+# Force UTF-8 on stdout/stderr so the unicode glyphs we use in status
+# output (`←`, `×`, `—`) don't crash the script on Windows, where
+# Python's default stdout codepage is whatever the system ANSI codepage
+# is (cp1252, cp1251, etc.) — none of which encode all those glyphs.
+# Wrapped tolerantly in case stdio has been replaced with a subprocess
+# pipe that doesn't support reconfigure.
+try:
+    sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
+    sys.stderr.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
+except (AttributeError, TypeError, ValueError):
+    pass
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from broker import data_dir, windows_mirror_dir  # noqa: E402
 

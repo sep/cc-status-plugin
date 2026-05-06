@@ -8,6 +8,15 @@ import json
 import sys
 from pathlib import Path
 
+# Force UTF-8 on stdout/stderr — same reason as pin.py: avoids
+# UnicodeEncodeError on Windows when output contains non-ANSI-codepage
+# glyphs. Tolerant wrap in case stdio doesn't support reconfigure.
+try:
+    sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
+    sys.stderr.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
+except (AttributeError, TypeError, ValueError):
+    pass
+
 
 def main():
     bin_dir = Path(__file__).resolve().parent
