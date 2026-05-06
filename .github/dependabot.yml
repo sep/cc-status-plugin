@@ -1,0 +1,27 @@
+version: 2
+
+# Plugin currently has no third-party Python deps and no GitHub Actions
+# workflows — this config is forward-looking. The moment a workflow lands
+# under .github/workflows/, Dependabot picks up its action SHAs and starts
+# opening weekly PRs to bump them.
+#
+# Pin to commit SHAs (not tags) for supply-chain security; Dependabot
+# rewrites both the SHA and the trailing version comment. Minor/patch bumps
+# batch into one PR, majors land alone for individual review.
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/Indiana/Indianapolis"
+    commit-message:
+      prefix: "ci"
+    groups:
+      actions-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
