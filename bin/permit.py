@@ -5,6 +5,7 @@ prompt for permission on every invocation. Idempotent.
 """
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -23,18 +24,44 @@ def main():
     pin_py = bin_dir / "pin.py"
     emit_py = bin_dir / "emit.py"
 
-    # Defensive: cover both the ${CLAUDE_PLUGIN_ROOT} (unexpanded) form
-    # that the slash-command markdown writes, and the absolute-path form
-    # that Bash sees after env-var expansion. Claude Code's permission
-    # matcher works on the command string at submission time, and which
-    # form it sees depends on shell-expansion timing — including both
-    # makes the allowlist robust to either.
+    # We add three forms of each script's pattern, defensively, because
+    # Claude Code's Bash-permission matcher does literal prefix matching
+    # against the *exact* command string the model emits — and that
+    # string varies subtly across installs:
+    #
+    #   1. The literal `${CLAUDE_PLUGIN_ROOT}/bin/pin.py` form — covers
+    #      the case where Claude Code matches before shell expansion.
+    #
+    #   2. The `__file__`-resolved absolute form (e.g.
+    #      "/mnt/w/sep/claude-status/bin/pin.py") — covers the case
+    #      where __file__'s parent matches CLAUDE_PLUGIN_ROOT exactly,
+    #      with no trailing slash in the env var.
+    #
+    #   3. The runtime-concatenated form using `os.environ["CLAUDE_PLUGIN_ROOT"]`
+    #      with the same `/bin/pin.py` suffix the slash-command bodies
+    #      use — covers the (commonly-hit) case where CLAUDE_PLUGIN_ROOT
+    #      ends with a trailing slash and the resulting string contains a
+    #      double slash (e.g. "/path/to/claude-status//bin/pin.py").
+    #      That double-slash is what the matcher actually compares against
+    #      and was the silent cause of /permit "not working" pre-0.3.5.
     patterns = [
         'Bash(python "${CLAUDE_PLUGIN_ROOT}/bin/pin.py":*)',
         'Bash(python "${CLAUDE_PLUGIN_ROOT}/bin/emit.py":*)',
         f'Bash(python "{pin_py}":*)',
         f'Bash(python "{emit_py}":*)',
     ]
+    plugin_root = os.environ.get("CLAUDE_PLUGIN_ROOT")
+    if plugin_root:
+        # Same f-string concat the slash-command bodies use: produces
+        # the exact path string (with whatever slash quirks) the matcher
+        # will see. Add only if it's actually different from the two
+        # patterns above to avoid duplicate entries on tidy installs.
+        runtime_pin  = f"{plugin_root}/bin/pin.py"
+        runtime_emit = f"{plugin_root}/bin/emit.py"
+        for runtime in (runtime_pin, runtime_emit):
+            pattern = f'Bash(python "{runtime}":*)'
+            if pattern not in patterns:
+                patterns.append(pattern)
 
     settings_path = Path.home() / ".claude" / "settings.json"
     settings_path.parent.mkdir(parents=True, exist_ok=True)
