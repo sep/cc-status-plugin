@@ -45,10 +45,10 @@ def main():
     #      That double-slash is what the matcher actually compares against
     #      and was the silent cause of /permit "not working" pre-0.3.5.
     patterns = [
-        'Bash(python "${CLAUDE_PLUGIN_ROOT}/bin/pin.py":*)',
-        'Bash(python "${CLAUDE_PLUGIN_ROOT}/bin/emit.py":*)',
-        f'Bash(python "{pin_py}":*)',
-        f'Bash(python "{emit_py}":*)',
+        'Bash("${CLAUDE_PLUGIN_ROOT}/bin/pin.py":*)',
+        'Bash("${CLAUDE_PLUGIN_ROOT}/bin/emit.py":*)',
+        f'Bash("{pin_py}":*)',
+        f'Bash("{emit_py}":*)',
     ]
     plugin_root = os.environ.get("CLAUDE_PLUGIN_ROOT")
     if plugin_root:
@@ -59,7 +59,7 @@ def main():
         runtime_pin  = f"{plugin_root}/bin/pin.py"
         runtime_emit = f"{plugin_root}/bin/emit.py"
         for runtime in (runtime_pin, runtime_emit):
-            pattern = f'Bash(python "{runtime}":*)'
+            pattern = f'Bash("{runtime}":*)'
             if pattern not in patterns:
                 patterns.append(pattern)
 

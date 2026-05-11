@@ -7,7 +7,7 @@ The panel layout has been recorded by the plugin's hook (or an invalid-count err
 Run this command to confirm the layout is set:
 
 ```bash
-python "${CLAUDE_PLUGIN_ROOT}/bin/pin.py" status
+"${CLAUDE_PLUGIN_ROOT}/bin/pin.py" status
 ```
 
 If the panels line in the output does not match what the user requested, gently report that the count was out of range (must be 1–4) or that the request was malformed. Suggest restarting the bridge (`bridge restart`) so the new layout is sent to the firmware right away — otherwise it will be applied on the next bridge reconnect.
