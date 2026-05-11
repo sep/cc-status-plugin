@@ -5,5 +5,5 @@ description: Report the claude-status transport's current pin and per-slot route
 Run this command and show its output to the user without embellishment.
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/bin/pin.py" status
+python3 "${CLAUDE_PLUGIN_ROOT}/bin/pin.py" status || python "${CLAUDE_PLUGIN_ROOT}/bin/pin.py" status
 ```

@@ -216,15 +216,17 @@ The plugin (this repo) is the Claude Code half of the system: it
 hooks every lifecycle event and publishes the state stream the
 bridge subscribes to.
 
-**Prerequisite:** Python 3 installed. The plugin's scripts use a
-`#!/usr/bin/env python3` shebang, so the OS picks the interpreter
-itself — you don't need any particular alias on your `PATH`.
+**Prerequisite:** Python 3 installed. The plugin's hook and slash
+commands invoke scripts via `python3 ... || python ...` — the polyglot
+that picks the right interpreter on every platform:
 
-  - **macOS / Linux / WSL:** any Python 3 install with `python3`
-    on `PATH` works (Homebrew, pyenv, system package manager, etc.).
-  - **Windows:** the python.org or Microsoft Store installer sets up
-    the `py.exe` launcher and the `.py` file association — both honor
-    the shebang. No extra config needed.
+  - **macOS / Linux / WSL:** the `python3` branch wins (Homebrew,
+    pyenv, system package manager — anything that puts `python3`
+    on `PATH`).
+  - **Windows:** `python3` doesn't exist on a typical Windows Python
+    install, so the `||` falls through to `python`, which is Py3 from
+    the python.org or Microsoft Store installer. No extra config
+    needed.
 
 Install the plugin from inside Claude Code:
 

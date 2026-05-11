@@ -5,7 +5,7 @@ description: Remove this session's display client routing. Future events fall ba
 The route has been removed by the plugin's hook. Run this command to confirm and report the current state to the user:
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/bin/pin.py" status
+python3 "${CLAUDE_PLUGIN_ROOT}/bin/pin.py" status || python "${CLAUDE_PLUGIN_ROOT}/bin/pin.py" status
 ```
 
 One line is enough.

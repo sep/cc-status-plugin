@@ -44,11 +44,18 @@ def main():
     #      double slash (e.g. "/path/to/claude-status//bin/pin.py").
     #      That double-slash is what the matcher actually compares against
     #      and was the silent cause of /permit "not working" pre-0.3.5.
+    # As of v0.3.7 the slash-command bodies and hooks invoke scripts as
+    # `python3 "<path>" ... || python "<path>" ...` — the polyglot form
+    # that picks the right interpreter on POSIX (python3 wins) and on
+    # native Windows (python3 not found, falls back to python). The
+    # allowlist matcher does literal prefix matching, so a pattern
+    # whose prefix is `python3 "<path>"` will match the full polyglot
+    # command Claude emits.
     patterns = [
-        'Bash("${CLAUDE_PLUGIN_ROOT}/bin/pin.py":*)',
-        'Bash("${CLAUDE_PLUGIN_ROOT}/bin/emit.py":*)',
-        f'Bash("{pin_py}":*)',
-        f'Bash("{emit_py}":*)',
+        'Bash(python3 "${CLAUDE_PLUGIN_ROOT}/bin/pin.py":*)',
+        'Bash(python3 "${CLAUDE_PLUGIN_ROOT}/bin/emit.py":*)',
+        f'Bash(python3 "{pin_py}":*)',
+        f'Bash(python3 "{emit_py}":*)',
     ]
     plugin_root = os.environ.get("CLAUDE_PLUGIN_ROOT")
     if plugin_root:
@@ -59,7 +66,7 @@ def main():
         runtime_pin  = f"{plugin_root}/bin/pin.py"
         runtime_emit = f"{plugin_root}/bin/emit.py"
         for runtime in (runtime_pin, runtime_emit):
-            pattern = f'Bash("{runtime}":*)'
+            pattern = f'Bash(python3 "{runtime}":*)'
             if pattern not in patterns:
                 patterns.append(pattern)
 

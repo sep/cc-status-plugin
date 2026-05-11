@@ -3,63 +3,63 @@
     "UserPromptSubmit": [
       {
         "hooks": [
-          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/emit.py\"" }
+          { "type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/bin/emit.py\" || python \"${CLAUDE_PLUGIN_ROOT}/bin/emit.py\"" }
         ]
       }
     ],
     "Stop": [
       {
         "hooks": [
-          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/emit.py\"" }
+          { "type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/bin/emit.py\" || python \"${CLAUDE_PLUGIN_ROOT}/bin/emit.py\"" }
         ]
       }
     ],
     "Notification": [
       {
         "hooks": [
-          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/emit.py\"" }
+          { "type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/bin/emit.py\" || python \"${CLAUDE_PLUGIN_ROOT}/bin/emit.py\"" }
         ]
       }
     ],
     "PreCompact": [
       {
         "hooks": [
-          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/emit.py\"" }
+          { "type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/bin/emit.py\" || python \"${CLAUDE_PLUGIN_ROOT}/bin/emit.py\"" }
         ]
       }
     ],
     "PostCompact": [
       {
         "hooks": [
-          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/emit.py\"" }
+          { "type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/bin/emit.py\" || python \"${CLAUDE_PLUGIN_ROOT}/bin/emit.py\"" }
         ]
       }
     ],
     "PreToolUse": [
       {
         "hooks": [
-          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/emit.py\"" }
+          { "type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/bin/emit.py\" || python \"${CLAUDE_PLUGIN_ROOT}/bin/emit.py\"" }
         ]
       }
     ],
     "PostToolUse": [
       {
         "hooks": [
-          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/emit.py\"" }
+          { "type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/bin/emit.py\" || python \"${CLAUDE_PLUGIN_ROOT}/bin/emit.py\"" }
         ]
       }
     ],
     "PostToolUseFailure": [
       {
         "hooks": [
-          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/emit.py\"" }
+          { "type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/bin/emit.py\" || python \"${CLAUDE_PLUGIN_ROOT}/bin/emit.py\"" }
         ]
       }
     ],
     "SubagentStop": [
       {
         "hooks": [
-          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/emit.py\"" }
+          { "type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/bin/emit.py\" || python \"${CLAUDE_PLUGIN_ROOT}/bin/emit.py\"" }
         ]
       }
     ]
