@@ -21,54 +21,34 @@ except (AttributeError, TypeError, ValueError):
 
 def main():
     bin_dir = Path(__file__).resolve().parent
-    pin_py = bin_dir / "pin.py"
-    emit_py = bin_dir / "emit.py"
+    plugin_root = bin_dir.parent  # canonical, no trailing slash
 
-    # We add three forms of each script's pattern, defensively, because
-    # Claude Code's Bash-permission matcher does literal prefix matching
-    # against the *exact* command string the model emits — and that
-    # string varies subtly across installs:
+    # Claude Code's Bash permission matcher expands ${CLAUDE_PLUGIN_ROOT}
+    # before checking allowlist patterns, then splits the command on
+    # shell operators (||, &&, ;, |) and prefix-checks each subcommand
+    # independently. Our slash commands invoke a polyglot:
+    #     python3 "${...}/bin/X.py" ... || python "${...}/bin/X.py" ...
+    # so BOTH the `python3 ...` and `python ...` subcommand prefixes
+    # need an allowlist entry, with absolute paths (placeholder forms
+    # never match — Claude Code expands them away before checking).
     #
-    #   1. The literal `${CLAUDE_PLUGIN_ROOT}/bin/pin.py` form — covers
-    #      the case where Claude Code matches before shell expansion.
-    #
-    #   2. The `__file__`-resolved absolute form (e.g.
-    #      "/mnt/w/sep/claude-status/bin/pin.py") — covers the case
-    #      where __file__'s parent matches CLAUDE_PLUGIN_ROOT exactly,
-    #      with no trailing slash in the env var.
-    #
-    #   3. The runtime-concatenated form using `os.environ["CLAUDE_PLUGIN_ROOT"]`
-    #      with the same `/bin/pin.py` suffix the slash-command bodies
-    #      use — covers the (commonly-hit) case where CLAUDE_PLUGIN_ROOT
-    #      ends with a trailing slash and the resulting string contains a
-    #      double slash (e.g. "/path/to/claude-status//bin/pin.py").
-    #      That double-slash is what the matcher actually compares against
-    #      and was the silent cause of /permit "not working" pre-0.3.5.
-    # As of v0.3.7 the slash-command bodies and hooks invoke scripts as
-    # `python3 "<path>" ... || python "<path>" ...` — the polyglot form
-    # that picks the right interpreter on POSIX (python3 wins) and on
-    # native Windows (python3 not found, falls back to python). The
-    # allowlist matcher does literal prefix matching, so a pattern
-    # whose prefix is `python3 "<path>"` will match the full polyglot
-    # command Claude emits.
-    patterns = [
-        'Bash(python3 "${CLAUDE_PLUGIN_ROOT}/bin/pin.py":*)',
-        'Bash(python3 "${CLAUDE_PLUGIN_ROOT}/bin/emit.py":*)',
-        f'Bash(python3 "{pin_py}":*)',
-        f'Bash(python3 "{emit_py}":*)',
-    ]
-    plugin_root = os.environ.get("CLAUDE_PLUGIN_ROOT")
-    if plugin_root:
-        # Same f-string concat the slash-command bodies use: produces
-        # the exact path string (with whatever slash quirks) the matcher
-        # will see. Add only if it's actually different from the two
-        # patterns above to avoid duplicate entries on tidy installs.
-        runtime_pin  = f"{plugin_root}/bin/pin.py"
-        runtime_emit = f"{plugin_root}/bin/emit.py"
-        for runtime in (runtime_pin, runtime_emit):
-            pattern = f'Bash(python3 "{runtime}":*)'
-            if pattern not in patterns:
-                patterns.append(pattern)
+    # Edge case: when CLAUDE_PLUGIN_ROOT ends with a trailing slash
+    # (the dev-style local marketplace pointing to `./`), the emitted
+    # command contains a double slash mid-path (`/root//bin/X.py`).
+    # The matcher does literal prefix matching, so we write a second
+    # variant covering that case only when we observe the env var
+    # actually has the trailing slash this run — avoids cluttering
+    # proper installs with patterns they don't need.
+    patterns = []
+    for interpreter in ("python3", "python"):
+        for name in ("pin.py", "emit.py"):
+            patterns.append(f'Bash({interpreter} "{plugin_root}/bin/{name}":*)')
+
+    env_root = os.environ.get("CLAUDE_PLUGIN_ROOT", "")
+    if env_root.endswith("/"):
+        for interpreter in ("python3", "python"):
+            for name in ("pin.py", "emit.py"):
+                patterns.append(f'Bash({interpreter} "{env_root}/bin/{name}":*)')
 
     settings_path = Path.home() / ".claude" / "settings.json"
     settings_path.parent.mkdir(parents=True, exist_ok=True)
