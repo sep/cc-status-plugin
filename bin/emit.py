@@ -141,58 +141,24 @@ def _handle_slash_command(prompt: str, session_id: str) -> dict | None:
 
     body = prompt[len(_SLASH_PREFIX):].strip()
 
-    # ---------------------------------------------------------------
-    # v0.2.0 primary verbs: show / hide
-    # `show <slot>` = "this session belongs at <slot>" (pin + route)
-    # `hide`        = "this session is not on the display" (clear both)
-    # The old verbs below funnel through the same actions for back-compat.
-    # ---------------------------------------------------------------
+    # v0.4 primary verbs: show / hide.
+    # `show <slot>` binds this session to <slot>, displacing any prior
+    # occupant and releasing any prior slot this session held.
+    # `hide` removes this session's binding entirely.
     if body.startswith("show "):
         slot = body[len("show "):].strip()
-        ok, _ = pin.set_route(session_id, slot)
+        ok, _ = pin.bind_slot(session_id, slot)
         if not ok:
             sys.stderr.write(f"[emit] /claude-status:show: invalid slot '{slot}'\n")
             return None
-        pin.write_pin(session_id)
-        sys.stderr.write(f"[emit] /claude-status:show {slot} -> pinned + routed {session_id}\n")
+        sys.stderr.write(f"[emit] /claude-status:show {slot} -> bound {session_id}\n")
     elif body == "hide":
-        # v0.2.0 semantic: write a _hidden route entry. Bridge v0.2.0
-        # subscription manager skips sessions with this entry entirely.
-        # Pre-v0.2.0 bridges interpret _hidden as an unknown/invalid slot
-        # and degrade gracefully (no client field, falls back to default).
-        pin.remove_pin()  # legacy: release pin so old bridges don't follow
-        pin.hide_session(session_id)
-        sys.stderr.write(f"[emit] /claude-status:hide -> {session_id} hidden\n")
-
-    # ---------------------------------------------------------------
-    # Legacy verbs (deprecated; same behavior as their show/hide counterparts).
-    # ---------------------------------------------------------------
-    elif body == "attach":
-        pin.write_pin(session_id)
-        sys.stderr.write(f"[emit] /claude-status:attach -> pinned {session_id} (deprecated; use /claude-status:show <slot>)\n")
-    elif body == "detach":
-        # Legacy alias for hide (v0.2.0 semantics).
-        pin.remove_pin()
-        pin.hide_session(session_id)
-        sys.stderr.write(f"[emit] /claude-status:detach -> {session_id} hidden (deprecated; use /claude-status:hide)\n")
-    elif body.startswith("route "):
-        slot = body[len("route "):].strip()
-        ok, _ = pin.set_route(session_id, slot)
-        if ok:
-            sys.stderr.write(f"[emit] /claude-status:route {slot} -> {session_id} routed (deprecated; use /claude-status:show {slot})\n")
-        else:
-            sys.stderr.write(f"[emit] /claude-status:route: invalid slot '{slot}'\n")
-    elif body == "unroute":
-        # Legacy: clears a session's explicit route, returning it to the
-        # firmware default slot. Use /claude-status:hide if you want it
-        # actually invisible.
-        pin.remove_route(session_id)
-        sys.stderr.write(f"[emit] /claude-status:unroute -> {session_id} route cleared (deprecated)\n")
+        pin.unbind_session(session_id)
+        sys.stderr.write(f"[emit] /claude-status:hide -> {session_id} unbound\n")
     elif body == "reset":
-        pins, routes = pin.reset_all()
+        removed = pin.reset_all()
         sys.stderr.write(
-            f"[emit] /claude-status:reset -> "
-            f"removed {len(pins)} pin file(s), {len(routes)} route file(s)\n"
+            f"[emit] /claude-status:reset -> removed {len(removed)} file(s)\n"
         )
     elif body.startswith("configure "):
         rest = body[len("configure "):].strip()
@@ -235,10 +201,34 @@ def main() -> None:
     # Hook-driven slash command handling. We do this BEFORE publishing to
     # the broker, so that even if broker spawn fails, the action still ran.
     firmware_command: dict | None = None
-    if payload.get("hook_event_name") == "UserPromptSubmit":
+    event_name = payload.get("hook_event_name")
+    if event_name == "UserPromptSubmit":
         prompt = (payload.get("prompt") or "").strip()
         if prompt.startswith(_SLASH_PREFIX):
             firmware_command = _handle_slash_command(prompt, session_id)
+    elif event_name == "SessionStart":
+        # CLI pairing: `CLAUDE_STATUS_SLOT=1 claude` binds the session
+        # to slot 1 the moment it starts, without the user having to
+        # type `/claude-status:show 1`. Invalid slots are logged and
+        # ignored — we never fail the hook.
+        slot = os.environ.get("CLAUDE_STATUS_SLOT", "").strip()
+        if slot:
+            sys.path.insert(0, str(Path(__file__).resolve().parent))
+            try:
+                import pin  # noqa: WPS433
+                ok, _ = pin.bind_slot(session_id, slot)
+                if ok:
+                    sys.stderr.write(
+                        f"[emit] SessionStart -> bound to slot {slot} "
+                        f"via CLAUDE_STATUS_SLOT\n"
+                    )
+                else:
+                    sys.stderr.write(
+                        f"[emit] SessionStart: invalid CLAUDE_STATUS_SLOT "
+                        f"'{slot}'\n"
+                    )
+            except Exception as e:
+                sys.stderr.write(f"[emit] SessionStart: pin import failed: {e}\n")
 
     port = read_port(session_id)
     sock = try_connect(port) if port else None

@@ -62,8 +62,8 @@ Linux install; on default Ubuntu / Debian, install
   (Claude Code plugin protocol changes, the Python ecosystem) and how
   to cut a release.
 - [`bin/`](bin/) — Python sources. `emit.py` is the per-event hook;
-  `broker.py` is the TCP NDJSON broker; `pin.py` manages session
-  pinning + display-slot routing; `permit.py` writes the
+  `broker.py` is the TCP NDJSON broker; `pin.py` manages
+  session-to-slot bindings; `permit.py` writes the
   permission-allowlist entries; `stdout-sink.py` is a debugging
   subscriber.
 - [`commands/`](commands/) — slash command bodies (one markdown file

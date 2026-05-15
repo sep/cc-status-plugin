@@ -7,16 +7,18 @@ Print the synopsis below to the user verbatim. No preamble, no follow-up questio
 ```
 claude-status — slash commands
 
-The panel has numbered slots (1, 2, ...). Slash commands move your
-Claude session onto, off, or between those slots.
+The panel has numbered slots (1, 2, ...). Slash commands bind your
+Claude session to a slot, or release the binding.
 
   Everyday:
-    /claude-status:show <slot>     Send this session's state to slot N
-                                   (e.g. 1, 2b). Slot stays bound to
-                                   you until you /hide.
-    /claude-status:hide            Stop sending this session to the
-                                   display.
-    /claude-status:status          Show which sessions are routed
+    /claude-status:show <slot>     Bind this session to slot N
+                                   (e.g. 1, 2b). Displaces any prior
+                                   occupant of the slot, and releases
+                                   any prior slot this session held.
+    /claude-status:hide            Release this session's slot binding.
+                                   Display becomes blank if no other
+                                   session is bound to that slot.
+    /claude-status:status          Show which sessions are bound
                                    to which slots.
     /claude-status:identify [N]    Flash each panel's slot ID for N
                                    seconds (default 5) so you can see
@@ -31,15 +33,12 @@ Claude session onto, off, or between those slots.
     /claude-status:reset           Wipe all sessions' slot bindings —
                                    clean slate.
 
-  Power users only (these split /show and /hide into their two
-  sub-operations: route = which slot, pin = exclusive transport claim):
-    /claude-status:route <slot>    Route to a slot without claiming
-                                   the transport.
-    /claude-status:unroute         Drop route only.
-    /claude-status:attach          Claim the transport for this
-                                   session (no route change).
-    /claude-status:detach          Drop both claim and route.
-
   Help:
     /claude-status:help            This message.
+
+  Tip — CLI pairing:
+    CLAUDE_STATUS_SLOT=1 claude    Auto-binds the session to slot 1
+                                   on start, no slash command needed.
+                                   Pair with shell aliases for
+                                   different slots.
 ```

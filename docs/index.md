@@ -280,9 +280,9 @@ Run these inside Claude Code (with the plugin installed).
 
 | Command                         | What it does                                            |
 |---------------------------------|---------------------------------------------------------|
-| `/claude-status:show <slot>`    | Send this session's state to slot N (e.g. `1`, `2b`).   |
+| `/claude-status:show <slot>`    | Bind this session to slot N (e.g. `1`, `2b`). Displaces any prior occupant. |
 | `/claude-status:hide`           | Stop sending this session to the display.               |
-| `/claude-status:status`         | Show which sessions are routed to which slots.          |
+| `/claude-status:status`         | Show which sessions are bound to which slots.           |
 | `/claude-status:identify [N]`   | Flash each panel's slot ID for N seconds (default 5).   |
 
 #### Setup
@@ -295,19 +295,23 @@ Run these inside Claude Code (with the plugin installed).
 | `/claude-status:reset`          | Wipe all session slot bindings — clean slate.           |
 | `/claude-status:help`           | List every slash command, briefly.                      |
 
-#### Power users only
+#### CLI pairing
 
-These split `show` and `hide` into their two sub-operations: a **route**
-(which slot a session lands on) and a **pin** (which session exclusively
-owns the bridge's transport). Most users don't need them — `show` /
-`hide` cover the everyday flow.
+If you routinely pair a fresh session to the same slot, set the
+`CLAUDE_STATUS_SLOT` env var when invoking `claude` — the plugin's
+SessionStart hook reads it and auto-binds the session to that slot
+before you type anything:
 
-| Command                       | What it does                                              |
-|-------------------------------|-----------------------------------------------------------|
-| `/claude-status:route <slot>` | Set a route only; don't claim the transport.              |
-| `/claude-status:unroute`      | Drop the route only.                                      |
-| `/claude-status:attach`       | Claim the transport for this session; don't change route. |
-| `/claude-status:detach`       | Drop both claim and route.                                |
+```
+CLAUDE_STATUS_SLOT=1 claude
+```
+
+Compose with shell aliases for different slots:
+
+```bash
+alias c1='CLAUDE_STATUS_SLOT=1 claude'
+alias c2='CLAUDE_STATUS_SLOT=2 claude'
+```
 
 ### Bridge CLI
 
