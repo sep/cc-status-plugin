@@ -33,9 +33,13 @@ with a frontmatter `description` field and a body that's
 **instructions to Claude**, not user-facing text. Conventions:
 
 - The body usually describes what the plugin's hook ALREADY did
-  (e.g. "the route has been recorded by the plugin's hook"), then
-  asks Claude to confirm via `python "${CLAUDE_PLUGIN_ROOT}/bin/pin.py" status`.
-- Use `python` (not `python3`) — Windows compatibility.
+  (e.g. "the session has been bound by the plugin's hook"), then
+  asks Claude to confirm via the polyglot invocation
+  `python3 "${CLAUDE_PLUGIN_ROOT}/bin/pin.py" status || python "${CLAUDE_PLUGIN_ROOT}/bin/pin.py" status`.
+- Use the polyglot `python3 ... || python ...` form everywhere, not a
+  bare `python` or `python3`. Claude Code's matcher splits commands
+  on `||` and prefix-checks each subcommand independently, so both
+  branches must be allowlisted.
 - Description in frontmatter is the one-liner that shows up in
   Claude Code's slash-command picker; keep it scannable.
 - If the command takes arguments, document the format in the
@@ -45,11 +49,11 @@ with a frontmatter `description` field and a body that's
 
 1. Create `commands/<verb>.md` with frontmatter + body following the
    conventions above.
-2. If the body invokes a Bash command, add the matching pattern to
-   `bin/permit.py`'s `patterns` list — both the literal
-   `${CLAUDE_PLUGIN_ROOT}` form and the `__file__`-resolved absolute
-   form (and the runtime-expanded form, which permit.py builds
-   automatically from `os.environ["CLAUDE_PLUGIN_ROOT"]`).
+2. If the body invokes a Bash command, `bin/permit.py` already covers
+   both interpreter prefixes (`python3`, `python`) and both slash
+   variants for the canonical `pin.py` / `emit.py` paths. New
+   commands that invoke a NEW script under `bin/` need that script
+   added to permit.py's pattern loops.
 3. Add a one-line entry to `commands/help.md`'s tier-grouped synopsis.
 4. Add a one-line entry to the hub site's "Commands" section in
    [`docs/index.md`](docs/index.md).
@@ -70,13 +74,16 @@ to publish.
 
 ## Cross-OS gotchas
 
-- Use `python`, not `python3`, in hooks.json + slash commands.
-  Windows installer doesn't put `python3` on PATH; `python` works
-  there and on modern Linux/macOS.
+- Use the polyglot `python3 ... || python ...` in hooks.json + slash
+  commands, never just one. `python3` exists on POSIX but not Windows;
+  `python` is Python 3 on Windows but Python 2 on legacy macOS. The
+  fallback chain covers all three. Claude Code's matcher splits on
+  `||` and checks each side, so both interpreter prefixes have to be
+  in the allowlist (permit.py writes both).
 - For subprocess spawn, use `sys.executable` instead of any literal
   command name — that's whatever Python is currently running.
 - Force UTF-8 on stdout/stderr at the top of any script that prints
-  non-ASCII (the `pin.py status` output uses `←`, `×`, `—` which
+  non-ASCII (the `pin.py status` output uses `×` and `—` which
   Windows ANSI codepages can't encode):
 
   ```python
