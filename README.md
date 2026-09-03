@@ -1,8 +1,12 @@
-# claude-status — plugin
+# llmstatus — plugin
 
-Claude Code plugin that hooks every lifecycle event in your Claude
-Code session and publishes a small NDJSON state stream to a local TCP
-broker. The [bridge][bridge] subscribes to that broker and forwards
+Agent status plugin that hooks every lifecycle event in your coding
+session and publishes a small NDJSON state stream to a local TCP
+broker. Built as a Claude Code plugin, and not Claude-specific: any
+agent that implements Claude Code's plugin architecture (lifecycle
+hooks with Claude-shaped payloads, `CLAUDE_PLUGIN_ROOT` /
+`CLAUDE_PLUGIN_DATA`, markdown slash commands) can drive the panel —
+[GitHub Copilot CLI](#github-copilot-cli) is the tested example. The [bridge][bridge] subscribes to that broker and forwards
 each state to the [ESP32-S3 firmware][firmware], which renders it on
 a HUB75 LED panel sitting on your desk.
 
@@ -45,14 +49,52 @@ The plugin itself installs from inside Claude Code:
 
 ```
 /plugin marketplace add sep/cc-status-plugin
-/plugin install claude-status@claude-status-local
-/claude-status:permit
+/plugin install llmstatus@llmstatus-market
+/llmstatus:permit
 ```
 
-`/claude-status:help` lists every available slash command. Python 3
+`/llmstatus:help` lists every available slash command. Python 3
 must be on PATH as the command `python` (any modern Windows / macOS /
 Linux install; on default Ubuntu / Debian, install
 `python-is-python3`).
+
+### GitHub Copilot CLI
+
+The plugin also works with [GitHub Copilot CLI][copilot-cli]
+(>= 1.0.66), which speaks a Claude-compatible plugin protocol — and
+should work with any other agent that implements Claude Code's plugin
+architecture; Copilot is the one we test. Same marketplace, same
+install commands, from inside `copilot`:
+
+```
+/plugin marketplace add sep/cc-status-plugin
+/plugin install llmstatus@llmstatus-market
+```
+
+Copilot picks up the manifest in `.github/plugin/plugin.json`, which
+routes hook registration to
+[`hooks/copilot-hooks.json`](hooks/copilot-hooks.json) — same events,
+same `emit.py`, so Copilot sessions light up the panel exactly like
+Claude sessions and can share slots with them.
+
+Copilot-flavored caveats:
+
+- **Slot pairing** — `CLAUDE_STATUS_SLOT=1 copilot` binds the session
+  to slot 1 at startup, exactly like the `claude` equivalent. The
+  `/llmstatus:*` commands are surfaced as skills; if your Copilot
+  build doesn't route them, env pairing is the reliable path.
+- **`/llmstatus:permit` knows both hosts** — under Claude Code it
+  writes `permissions.allow` in `~/.claude/settings.json`; under
+  Copilot it runs `permit.py --copilot`, writing command-prefix
+  approvals to `~/.copilot/permissions-config.json` and allowlisting
+  the `~/.claude-status` status dir so file reads stop raising path
+  prompts. Copilot scopes approvals per repo/directory (no global
+  scope), so re-run it once per repo where you use the panel.
+- **No `PostCompact` event** — after a context compaction the panel
+  shows *compacting* until the next tool call or end of turn, then
+  recovers on its own.
+
+[copilot-cli]: https://github.com/github/copilot-cli
 
 ## Developers
 
@@ -70,6 +112,11 @@ Linux install; on default Ubuntu / Debian, install
   per command).
 - [`hooks/hooks.json`](hooks/hooks.json) — Claude Code lifecycle-hook
   registration. Every event invokes `emit.py`.
+- [`hooks/copilot-hooks.json`](hooks/copilot-hooks.json) — the same
+  registration in Copilot CLI's native hook format (referenced from
+  `.github/plugin/plugin.json`). PascalCase event names are load-bearing:
+  they make Copilot deliver Claude-shaped snake_case payloads
+  (`hook_event_name`, `session_id`) that `emit.py` parses unchanged.
 
 ### Wire-protocol spec
 
@@ -83,12 +130,13 @@ first.
 
 ### Cutting a release
 
-The plugin's `version` field in `.claude-plugin/plugin.json` and
-`.claude-plugin/marketplace.json` is the cache key Claude Code's
-`/plugin update` checks against. Bump it in lockstep before tagging:
+The plugin's `version` field in `.claude-plugin/plugin.json`,
+`.claude-plugin/marketplace.json`, and `.github/plugin/plugin.json` is
+the cache key `/plugin update` checks against (Claude Code and Copilot
+respectively). Bump all three in lockstep before tagging:
 
 ```sh
-# bump both .claude-plugin/{plugin,marketplace}.json to the new version
+# bump all three manifests to the new version
 git commit -am "Plugin: bump to vX.Y.Z"
 git tag vX.Y.Z
 git push --tags

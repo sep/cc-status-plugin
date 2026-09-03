@@ -1,5 +1,5 @@
 ---
-description: Briefly flash each panel's ID on the display, so you can see which physical panel is which logical slot. Usage: /claude-status:identify [seconds]
+description: "Briefly flash each panel's ID on the display, so you can see which physical panel is which logical slot. Usage: /llmstatus:identify [seconds]"
 ---
 
 The identify command has been issued via the plugin's hook. The bridge will forward it to the firmware as soon as it processes this prompt's event, and each panel will display its slot ID in large glyphs for the requested duration (default 5 seconds; firmware clamps to 0.5–30s).

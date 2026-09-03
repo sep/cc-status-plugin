@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-TCP NDJSON broker for claude-status.
+TCP NDJSON broker for llmstatus.
 
 Protocol per connection:
   line 1: "PUB\\n" or "SUB\\n" (optional JSON filter after SUB is ignored in v0)
@@ -38,6 +38,23 @@ def _port_listening(port: int) -> bool:
             return True
     except Exception:
         return False
+
+
+def platform_tag() -> str:
+    """
+    Reachability domain for loopback port probes. WSL and Windows share
+    the mirror directory but NOT (reliably) 127.0.0.1 — a WSL process
+    generally can't reach a Windows broker's port and must not judge its
+    liveness by probing it. Distinct tags = distinct probe domains.
+    """
+    if sys.platform == "win32":
+        return "windows"
+    try:
+        if "microsoft" in Path("/proc/version").read_text().lower():
+            return "wsl"
+    except OSError:
+        pass
+    return sys.platform  # "linux", "darwin"
 
 
 def discovery_dir() -> Path | None:
@@ -138,6 +155,20 @@ class Broker:
                     sub.write(line)
                 except Exception:
                     self.subscribers.discard(sub)
+            # SessionEnd is the session's last event: fan it out, then
+            # retire this broker so no python process outlives the
+            # session (a lingering broker on Windows blocks plugin
+            # uninstall/update from deleting its directories).
+            try:
+                evt = json.loads(line)
+            except Exception:
+                evt = None
+            if (
+                isinstance(evt, dict)
+                and evt.get("event") == "SessionEnd"
+                and evt.get("session_id") in (None, self.session_id)
+            ):
+                asyncio.create_task(self._shutdown_after(1.0))
 
     async def _handle_subscriber(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         # Atomic (single-threaded asyncio): replay catch-up, then register for
@@ -170,9 +201,26 @@ class Broker:
                 self._cleanup_state()
                 os._exit(0)
 
+    async def _shutdown_after(self, delay: float) -> None:
+        await asyncio.sleep(delay)  # let subscriber writes flush
+        self._log("session ended, exiting")
+        self._cleanup_state()
+        os._exit(0)
+
     def _log(self, msg: str) -> None:
-        sys.stderr.write(f"[broker {self.session_id[:8]}] {msg}\n")
-        sys.stderr.flush()
+        # Open-append-close per line rather than holding broker.log open:
+        # a persistent handle inside the plugin-data dir blocks plugin
+        # uninstall/update on Windows for as long as the broker lives.
+        line = f"[broker {self.session_id[:8]}] {msg}\n"
+        try:
+            with open(data_dir() / "broker.log", "a", encoding="utf-8") as f:
+                f.write(line)
+        except Exception:
+            try:
+                sys.stderr.write(line)
+                sys.stderr.flush()
+            except Exception:
+                pass
 
     def _cleanup_state(self) -> None:
         try:
@@ -187,7 +235,12 @@ class Broker:
                 pass
 
     def _write_state(self, port: int) -> None:
-        payload = json.dumps({"pid": os.getpid(), "port": port, "session_id": self.session_id})
+        payload = json.dumps({
+            "pid": os.getpid(),
+            "port": port,
+            "session_id": self.session_id,
+            "platform": platform_tag(),
+        })
         tmp = self.state_file.with_suffix(".tmp")
         tmp.write_text(payload)
         os.replace(tmp, self.state_file)
@@ -241,7 +294,21 @@ class Broker:
                         meta = json.loads(bj.read_text())
                         port = int(meta.get("port", 0))
                     except Exception:
+                        meta = {}
                         port = 0
+                    # Only judge brokers from our own reachability
+                    # domain: a live Windows broker's port doesn't
+                    # answer WSL loopback probes (and vice versa), and
+                    # deleting its mirrored state would both hide the
+                    # session from the bridge and get its route pruned
+                    # at the next bind. Cross-platform corpses are the
+                    # other side's janitor's job. Files without a
+                    # platform field (pre-v0.5 brokers) keep the old
+                    # probe-and-clean behavior — a transitional risk
+                    # that retires as brokers recycle.
+                    meta_platform = meta.get("platform")
+                    if meta_platform and meta_platform != platform_tag():
+                        continue
                     if port > 0 and _port_listening(port):
                         continue
                     try:

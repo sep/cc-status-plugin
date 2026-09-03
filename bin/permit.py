@@ -1,7 +1,16 @@
 #!/usr/bin/env python3
-"""Allowlist the claude-status plugin's Bash invocations in the user's
-~/.claude/settings.json so slash commands like /claude-status:show don't
-prompt for permission on every invocation. Idempotent.
+"""Allowlist the llmstatus plugin's Bash invocations so slash
+commands like /llmstatus:show don't prompt for permission on every
+invocation. Idempotent.
+
+Default (no args): Claude Code — writes permissions.allow patterns to
+~/.claude/settings.json.
+
+--copilot: GitHub Copilot CLI — writes command-prefix approvals to
+~/.copilot/permissions-config.json (COPILOT_HOME honored). Copilot
+scopes approvals to a location (the git repo root of the working
+directory, or the working directory itself outside a repo); there is
+no global scope, so this must be re-run once per repo.
 """
 
 import json
@@ -17,6 +26,101 @@ try:
     sys.stderr.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
 except (AttributeError, TypeError, ValueError):
     pass
+
+
+def copilot_config_dir() -> Path:
+    home = os.environ.get("COPILOT_HOME")
+    if home:
+        return Path(home)
+    return Path.home() / ".copilot"
+
+
+def copilot_location_key() -> str:
+    """Copilot scopes tool approvals to the git repository root of the
+    working directory, or the working directory itself outside a repo."""
+    cwd = Path.cwd().resolve()
+    for candidate in (cwd, *cwd.parents):
+        if (candidate / ".git").exists():
+            return str(candidate)
+    return str(cwd)
+
+
+def copilot_main() -> int:
+    plugin_root = Path(__file__).resolve().parent.parent
+
+    # Copilot's commandIdentifiers are literal prefixes with a `:*`
+    # wildcard suffix. Cover both interpreters (POSIX Copilot runs the
+    # python3||python polyglot; Windows uses bare python) and both
+    # quoted/unquoted path spellings the model may emit.
+    identifiers = []
+    for interpreter in ("python", "python3"):
+        for name in ("pin.py", "emit.py", "permit.py"):
+            script = plugin_root / "bin" / name
+            identifiers.append(f'{interpreter} "{script}":*')
+            identifiers.append(f"{interpreter} {script}:*")
+
+    config_path = copilot_config_dir() / "permissions-config.json"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    if config_path.exists():
+        try:
+            config = json.loads(config_path.read_text())
+        except json.JSONDecodeError as e:
+            print(f"error: {config_path} is not valid JSON: {e}", file=sys.stderr)
+            return 1
+    else:
+        config = {}
+
+    location = copilot_location_key()
+    loc = config.setdefault("locations", {}).setdefault(location, {})
+    approvals = loc.setdefault("tool_approvals", [])
+    existing = set()
+    for entry in approvals:
+        if entry.get("kind") == "commands":
+            existing.update(entry.get("commandIdentifiers", []))
+
+    missing = [i for i in identifiers if i not in existing]
+    if missing:
+        approvals.append({"kind": "commands", "commandIdentifiers": missing})
+
+    # The slash-command bodies have the model read routes.json /
+    # panel_layout.json straight from the well-known status dir, which
+    # lives outside the workspace — Copilot raises a path prompt for
+    # every such read unless the dir is in allowed_directories.
+    added_dir = None
+    status_dir = None
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from broker import discovery_dir  # noqa: WPS433
+        status_dir = discovery_dir()
+    except Exception:
+        pass
+    if status_dir is None:
+        status_dir = Path.home() / ".claude-status"
+    allowed = loc.setdefault("allowed_directories", [])
+    if str(status_dir) not in allowed:
+        allowed.append(str(status_dir))
+        added_dir = str(status_dir)
+
+    if missing or added_dir:
+        config_path.write_text(json.dumps(config, indent=2) + "\n")
+
+    print(f"permissions: {config_path}")
+    print(f"location:    {location}")
+    if missing:
+        print(f"added ({len(missing)}):")
+        for i in missing:
+            print(f"  + {i}")
+    if added_dir:
+        print(f"allowed directory (path prompts): + {added_dir}")
+    if not missing and not added_dir:
+        print("(all approvals already present)")
+    print(
+        "note: approvals are scoped to this repo/directory — re-run "
+        "/llmstatus:permit in other repos as needed. Takes effect "
+        "next session; if Copilot rewrites the file on exit, re-run "
+        "this once no session is active."
+    )
+    return 0
 
 
 def main():
@@ -90,4 +194,6 @@ def main():
 
 
 if __name__ == "__main__":
+    if "--copilot" in sys.argv[1:]:
+        sys.exit(copilot_main())
     sys.exit(main())

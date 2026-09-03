@@ -19,7 +19,7 @@ from pathlib import Path
 CANDIDATE_DATA_DIRS = [
     os.environ.get("CLAUDE_PLUGIN_DATA"),
     str(Path.home() / ".claude" / "status-data"),
-    "/tmp/claude-status-test",
+    "/tmp/llmstatus-test",
 ]
 CLAUDE_PLUGINS_DATA_ROOT = Path.home() / ".claude" / "plugins" / "data"
 

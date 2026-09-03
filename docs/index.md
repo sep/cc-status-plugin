@@ -7,13 +7,18 @@ title: ClaudePanel
 
 **Claude Code External Status Display**
 
-ClaudePanel is a small hardware indicator that shows what Claude Code is
-doing right now — whether it's processing your prompt, waiting on you to
-approve a tool, finished its turn, or stuck on something — so you can
-glance at a panel on your desk instead of watching your terminal.
+ClaudePanel is a small hardware indicator that shows what your coding
+agent is doing right now — whether it's processing your prompt, waiting
+on you to approve a tool, finished its turn, or stuck on something — so
+you can glance at a panel on your desk instead of watching your
+terminal. It's built for Claude Code, and works with any agent that
+implements Claude Code's plugin architecture — GitHub Copilot CLI is
+the tested example.
 
-> *Photo of the device displaying different states will land here once
-> we've got hardware in front of a camera.*
+<img src="assets/panel-idle-desk.jpg"
+     alt="ClaudePanel on a desk beside a laptop: a 64×32 LED matrix showing IDLE in green dot-matrix letters, ringed by a cyan border, while someone types on the laptop behind it."
+     style="border-radius: 8px; box-shadow: 0 4px 18px rgba(0,0,0,0.25);">
+<p style="text-align: center; font-size: 0.85rem; color: #6a737d; margin-top: 0.5rem;"><em>Turn finished — the panel goes green while you're the bottleneck.</em></p>
 
 <style>
   /* ---- feature cards (the three "panelly" buttons) ---- */
@@ -132,9 +137,15 @@ distinguishable at a glance from across a desk:
 |                | history — usually a 10–60s pause.                 |
 | **error**      | A tool call returned an error.                    |
 
+<img src="assets/panel-blocked.jpg"
+     alt="The panel showing BLOCKED in red dot-matrix letters with a red-and-blue alternating border — the agent is waiting on a permission prompt. Small dot clusters along the bottom edge show activity counters."
+     style="border-radius: 8px; box-shadow: 0 4px 18px rgba(0,0,0,0.25); margin-top: 0.75rem;">
+<p style="text-align: center; font-size: 0.85rem; color: #6a737d; margin-top: 0.5rem;"><em>blocked — the agent wants a permission decision and you're across the room.</em></p>
+
 Alongside the state, the panel also shows running counts of subagents
 and active tasks — handy when you've kicked off parallel work and want
-to monitor it without scrolling the terminal.
+to monitor it without scrolling the terminal. (You can see the counter
+dots along the bottom edge of the photo above.)
 
 A single firmware instance can drive one panel or a chain of up to
 four 64×32 panels, with each panel optionally split into two
@@ -145,10 +156,10 @@ display.
 
 ## How it works
 
-When you write a prompt in Claude Code, ClaudePanel converts that
+When you write a prompt in your agent, ClaudePanel converts that
 keystroke into pixels in three hops:
 
-1. **The plugin** *(this repo)* hooks every Claude Code lifecycle event
+1. **The plugin** *(this repo)* hooks every agent lifecycle event
    — `UserPromptSubmit`, `Stop`, `PreToolUse`, `PostCompact`, and so on
    — and publishes a small JSON event for each one to a local TCP
    broker on your machine.
@@ -225,38 +236,172 @@ that picks the right interpreter on every platform:
     on `PATH`).
   - **Windows:** `python3` doesn't exist on a typical Windows Python
     install, so the `||` falls through to `python`, which is Py3 from
-    the python.org or Microsoft Store installer. No extra config
-    needed.
+    the python.org or Microsoft Store installer. It must be a **real
+    Python install** — the `python`/`python3` App Execution Alias
+    stubs that open the Microsoft Store don't count.
 
-Install the plugin from inside Claude Code:
+#### Which agents can drive the panel?
+
+The plugin is built as a Claude Code plugin, and any agent that
+implements Claude Code's plugin architecture can run it:
+
+| Host                                   | Panel states | Slash commands | Slot pairing | Status |
+|----------------------------------------|--------------|----------------|--------------|--------|
+| **Claude Code** (CLI)                  | ✅           | ✅ `/llmstatus:*` | ✅ commands or env | **Tested** |
+| **Copilot CLI** (≥ 1.0.66)             | ✅           | ✅ (as skills)    | ✅ commands or env | **Tested** |
+| **Claude Code in VS Code / JetBrains** | ✅           | ✅                | ✅           | Expected — same engine as the CLI, shares its install |
+| **VS Code Copilot** (agent mode)       | ✅ expected  | ⚠️ may not surface in chat | env var | Expected — untested; native-Windows caveat below |
+| **JetBrains Copilot**                  | ⏳           | ⏳                | ⏳           | Untested — moving to the Copilot CLI harness, which we support |
+| **Copilot cloud agent** (github.com)   | —            | —                | —            | n/a — runs in GitHub's cloud, no path to the USB panel on your desk |
+
+Pick your host for the specifics:
+
+<style>
+  .host-tabs > input { display: none; }
+  .host-tab-labels {
+    display: flex; flex-wrap: wrap; gap: 0.4rem;
+    margin: 1rem 0 0; padding: 0;
+  }
+  .host-tab-labels label {
+    padding: 0.35rem 0.9rem; cursor: pointer;
+    border: 1px solid #d0d7de; border-radius: 6px 6px 0 0;
+    border-bottom: none; background: #f6f8fa;
+    font-weight: 600; font-size: 0.9rem; color: #57606a;
+  }
+  .host-tab-panel {
+    display: none; border: 1px solid #d0d7de; border-radius: 0 6px 6px 6px;
+    padding: 0.25rem 1.25rem; margin-bottom: 1.5rem;
+  }
+  #tab-claude:checked    ~ .host-tab-labels label[for="tab-claude"],
+  #tab-copilot:checked   ~ .host-tab-labels label[for="tab-copilot"],
+  #tab-vscode:checked    ~ .host-tab-labels label[for="tab-vscode"],
+  #tab-jetbrains:checked ~ .host-tab-labels label[for="tab-jetbrains"] {
+    background: #fff; color: #159957; border-color: #159957;
+    border-bottom: 1px solid #fff; margin-bottom: -1px; position: relative; z-index: 1;
+  }
+  #tab-claude:checked    ~ #panel-claude,
+  #tab-copilot:checked   ~ #panel-copilot,
+  #tab-vscode:checked    ~ #panel-vscode,
+  #tab-jetbrains:checked ~ #panel-jetbrains { display: block; }
+</style>
+
+<div class="host-tabs">
+  <input type="radio" id="tab-claude" name="host-tab" checked>
+  <input type="radio" id="tab-copilot" name="host-tab">
+  <input type="radio" id="tab-vscode" name="host-tab">
+  <input type="radio" id="tab-jetbrains" name="host-tab">
+  <div class="host-tab-labels">
+    <label for="tab-claude">Claude Code</label>
+    <label for="tab-copilot">Copilot CLI</label>
+    <label for="tab-vscode">VS Code Copilot</label>
+    <label for="tab-jetbrains">JetBrains Copilot</label>
+  </div>
+
+  <div class="host-tab-panel" id="panel-claude" markdown="1">
+
+Install from inside Claude Code:
 
 ```
 /plugin marketplace add sep/cc-status-plugin
-/plugin install claude-status@claude-status-local
+/plugin install llmstatus@llmstatus-market
 ```
 
-Then run the one-time permission setup so Claude Code stops asking
-to approve every plugin-driven Bash invocation:
+Then run the one-time permission setup so Claude Code stops asking to
+approve every plugin-driven Bash invocation:
 
 ```
-/claude-status:permit
+/llmstatus:permit
 ```
 
-If you have a multi-panel chain (rather than a single 64×32), tell
-the firmware once — the layout is cached in NVS so it survives
-reboots:
+If you have a multi-panel chain (rather than a single 64×32), tell the
+firmware once — the layout is cached in NVS so it survives reboots:
 
 ```
-/claude-status:configure 2
+/llmstatus:configure 2
 ```
 
-`/claude-status:help` lists every slash command the plugin provides.
+`/llmstatus:help` lists every slash command the plugin provides.
+
+**IDE extensions:** the Claude Code extensions for VS Code and
+JetBrains run the same engine and share the CLI's `~/.claude` install —
+nothing extra to do. Sessions opened in the IDE drive the panel exactly
+like terminal sessions.
+
+  </div>
+
+  <div class="host-tab-panel" id="panel-copilot" markdown="1">
+
+The same plugin installs into `copilot` (≥ 1.0.66), whose plugin
+protocol is Claude-compatible. Same marketplace, same commands, from
+inside a Copilot session:
+
+```
+/plugin marketplace add sep/cc-status-plugin
+/plugin install llmstatus@llmstatus-market
+/llmstatus:permit
+```
+
+Copilot sessions then drive the panel exactly like Claude sessions and
+can share slots with them. Copilot-flavored notes:
+
+- `/llmstatus:permit` writes Copilot's `permissions-config.json`
+  (command approvals + path-prompt allowlisting for the status dir),
+  scoped **per repo/directory** — re-run it once in each repo where
+  you use the panel.
+- `CLAUDE_STATUS_SLOT=1 copilot` binds the session to slot 1 at
+  launch, no slash command needed.
+- On Windows, make sure `python` is a real install, not the Microsoft
+  Store alias stub.
+
+  </div>
+
+  <div class="host-tab-panel" id="panel-vscode" markdown="1">
+
+*(Using the **Claude Code** extension instead? See the Claude Code tab
+— it shares the CLI install.)*
+
+VS Code's agent-plugin system auto-detects Claude-format plugins and
+runs their hooks, so Copilot agent mode can drive the panel. The
+smoothest path is to **install via Copilot CLI first** (see that tab) —
+VS Code auto-discovers plugins from `~/.copilot/installed-plugins/`.
+Alternatively, use **Chat: Install Plugin From Source** from the
+command palette.
+
+Caveats (this host is documented-but-untested — reports welcome):
+
+- Plugin slash commands may not surface in VS Code chat. Pair the
+  session to a slot with the env var instead: launch VS Code from a
+  shell with `CLAUDE_STATUS_SLOT=1` set, or bind from a CLI session.
+- Native Windows is unverified; if the panel stays dark, launch with
+  `CLAUDE_STATUS_DEBUG=1` in the environment and check
+  `~/.claude-status/debug.log` for what (if anything) the hooks
+  received.
+
+  </div>
+
+  <div class="host-tab-panel" id="panel-jetbrains" markdown="1">
+
+*(Using the **Claude Code** plugin instead? See the Claude Code tab —
+it shares the CLI install.)*
+
+Untested, but converging on supported: GitHub is moving JetBrains
+Copilot to **Copilot CLI as its agent harness**. On builds using the
+CLI harness, the Copilot CLI install (see that tab) applies as-is —
+sessions run through the same CLI the plugin already supports.
+
+On older builds with JetBrains' native hooks, only a subset of
+lifecycle events fires (notably no `Stop`), so the panel may not
+return to *idle* between turns. If you try it, we'd love a report
+either way.
+
+  </div>
+</div>
 
 ### Verify
 
 Send any prompt in Claude Code. The panel should light up — yellow
 while Claude is working, green when it goes idle. Run
-`/claude-status:identify` to flash each physical panel's slot ID
+`/llmstatus:identify` to flash each physical panel's slot ID
 large and centered, so you can confirm wiring matches what the
 firmware thinks the layout is.
 
@@ -280,20 +425,20 @@ Run these inside Claude Code (with the plugin installed).
 
 | Command                         | What it does                                            |
 |---------------------------------|---------------------------------------------------------|
-| `/claude-status:show <slot>`    | Bind this session to slot N (e.g. `1`, `2b`). Displaces any prior occupant. |
-| `/claude-status:hide`           | Stop sending this session to the display.               |
-| `/claude-status:status`         | Show which sessions are bound to which slots.           |
-| `/claude-status:identify [N]`   | Flash each panel's slot ID for N seconds (default 5).   |
+| `/llmstatus:show <slot>`    | Bind this session to slot N (e.g. `1`, `2b`). Displaces any prior occupant. |
+| `/llmstatus:hide`           | Stop sending this session to the display.               |
+| `/llmstatus:status`         | Show which sessions are bound to which slots.           |
+| `/llmstatus:identify [N]`   | Flash each panel's slot ID for N seconds (default 5).   |
 
 #### Setup
 
 | Command                         | What it does                                            |
 |---------------------------------|---------------------------------------------------------|
-| `/claude-status:configure <N>`  | Tell the firmware your panel-chain length (1–4).        |
-| `/claude-status:permit`         | One-time: allowlist the plugin's Bash invocations so    |
+| `/llmstatus:configure <N>`  | Tell the firmware your panel-chain length (1–4).        |
+| `/llmstatus:permit`         | One-time: allowlist the plugin's Bash invocations so    |
 |                                 | commands stop prompting.                                |
-| `/claude-status:reset`          | Wipe all session slot bindings — clean slate.           |
-| `/claude-status:help`           | List every slash command, briefly.                      |
+| `/llmstatus:reset`          | Wipe all session slot bindings — clean slate.           |
+| `/llmstatus:help`           | List every slash command, briefly.                      |
 
 #### CLI pairing
 
@@ -311,6 +456,13 @@ Compose with shell aliases for different slots:
 ```bash
 alias c1='CLAUDE_STATUS_SLOT=1 claude'
 alias c2='CLAUDE_STATUS_SLOT=2 claude'
+```
+
+The same env var pairs Copilot CLI sessions — the plugin's
+SessionStart hook doesn't care which agent invoked it:
+
+```bash
+alias gh1='CLAUDE_STATUS_SLOT=1 copilot'
 ```
 
 ### Bridge CLI

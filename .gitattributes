@@ -1,0 +1,5 @@
+# Pin LF everywhere. The plugin's command frontmatter, hook JSON, and
+# Python sources are parsed by both Claude Code and Copilot CLI on all
+# platforms; a Windows git clone with core.autocrlf=true must not
+# CRLF-convert them (strict frontmatter parsers reject CRLF).
+* text=auto eol=lf

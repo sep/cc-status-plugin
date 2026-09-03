@@ -1,14 +1,14 @@
 {
-  "name": "claude-status-local",
+  "name": "llmstatus-market",
   "owner": {
     "name": "rmrogers"
   },
   "plugins": [
     {
-      "name": "claude-status",
+      "name": "llmstatus",
       "source": "./",
-      "description": "Publish Claude Code lifecycle events to a local TCP/NDJSON broker.",
-      "version": "0.4.0"
+      "description": "Publish agent lifecycle events to a local TCP/NDJSON broker. Works with Claude Code and any agent implementing its plugin architecture (e.g. GitHub Copilot CLI).",
+      "version": "0.5.0"
     }
   ]
 }

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Slot routing helpers for the claude-status transport.
+Slot routing helpers for the llmstatus transport.
 
 Routes map Claude Code session_ids to display slots ("1", "2b", etc.):
   routes.json    {"<session_id>": "<slot>", ...}
@@ -8,7 +8,9 @@ Routes map Claude Code session_ids to display slots ("1", "2b", etc.):
 Each session occupies at most one slot, and each slot holds at most one
 session. `bind_slot` enforces both constraints by displacement — when a
 new session takes a slot, any prior occupant is evicted, and any prior
-slot the same session held is released.
+slot the same session held is released — and additionally prunes routes
+whose session no longer has broker state in any base, so stale entries
+merged in from divergent data dirs can't pile up on a slot.
 
 The bridge subscribes only to sessions present in routes.json; sessions
 without a binding are invisible to the display.
@@ -153,6 +155,22 @@ def _write_routes(routes: dict[str, str]) -> list[Path]:
     return written
 
 
+def _session_has_broker_state(session_id: str) -> bool:
+    """
+    Liveness proxy: does any base hold a broker.json for this session?
+    The broker writes it on (re)spawn and removes it on SessionEnd or
+    idle-exit, and mirrors it to the well-known status dir — so it's
+    visible from both sides of a WSL/Windows boundary. We deliberately
+    don't port-probe: a WSL process can't reach a Windows broker's
+    loopback port (and vice versa), so connectivity would misreport
+    live cross-OS sessions as dead.
+    """
+    for base in read_bases():
+        if (base / "sessions" / session_id / "broker.json").is_file():
+            return True
+    return False
+
+
 def bind_slot(session_id: str, slot: str) -> tuple[bool, list[Path]]:
     """
     Bind a session to a slot with two-axis displacement: any other
@@ -160,17 +178,27 @@ def bind_slot(session_id: str, slot: str) -> tuple[bool, list[Path]]:
     held is released. Result: at most one session per slot, at most one
     slot per session. Idempotent — re-binding the same pair is a no-op.
 
+    Binding also prunes routes whose session has no broker state left
+    in any base. Displacement alone only resolves the slot being bound:
+    when bases diverge (two OSes, plugin reinstalls under new data
+    dirs), read_routes() merges stale entries back in, and a later bind
+    to a *different* slot would faithfully persist that union — piling
+    dead sessions onto a slot. Pruning at bind time restores the
+    one-session-per-slot invariant globally.
+
     Returns (ok, paths_written). ok=False only on invalid slot syntax.
     """
     if not is_valid_slot(slot):
         return False, []
     routes = read_routes()
-    # Evict anyone else holding this slot, and release any prior slot
-    # this session held. Build the eviction list separately so we don't
-    # mutate the dict mid-iteration.
     to_remove = [
         sid for sid, s in routes.items()
+        # Anyone else holding this slot, and any prior slot this
+        # session held (built separately so we don't mutate the dict
+        # mid-iteration)...
         if (s == slot and sid != session_id) or (sid == session_id and s != slot)
+        # ...plus any session that no longer has a broker anywhere.
+        or (sid != session_id and not _session_has_broker_state(sid))
     ]
     for sid in to_remove:
         del routes[sid]
@@ -202,18 +230,26 @@ def unbind_session(session_id: str) -> list[Path]:
 # --------------------------- PANEL LAYOUT ---------------------------
 
 def read_panel_layout() -> dict | None:
-    """Return the panel layout from the first base that has one, or None."""
+    """
+    Return the panel layout from the NEWEST file across all bases, or
+    None. First-found would let a stale copy in an abandoned data dir
+    (plugin reinstalls, cross-OS use) shadow the layout the user most
+    recently configured; set_panel_layout only writes to targets(), so
+    stale copies in wider read_bases() never get refreshed.
+    """
+    newest: tuple[float, dict] | None = None
     for base in read_bases():
         p = panel_layout_path(base)
         if not p.is_file():
             continue
         try:
+            mtime = p.stat().st_mtime
             data = json.loads(p.read_text())
-            if isinstance(data, dict):
-                return data
         except Exception:
-            pass
-    return None
+            continue
+        if isinstance(data, dict) and (newest is None or mtime > newest[0]):
+            newest = (mtime, data)
+    return newest[1] if newest else None
 
 
 def set_panel_layout(**fields) -> tuple[bool, list[Path]]:
