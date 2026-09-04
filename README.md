@@ -93,6 +93,10 @@ Copilot-flavored caveats:
 - **No `PostCompact` event** — after a context compaction the panel
   shows *compacting* until the next tool call or end of turn, then
   recovers on its own.
+- **Restart sessions after install/update** — hooks bind at session
+  creation, and a resumed session keeps its original registration.
+  Skills refresh on resume, so `/llmstatus:*` commands will respond
+  while the panel stays dark; `/restart` (or a fresh session) fixes it.
 
 [copilot-cli]: https://github.com/github/copilot-cli
 

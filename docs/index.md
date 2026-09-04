@@ -352,6 +352,10 @@ can share slots with them. Copilot-flavored notes:
   launch, no slash command needed.
 - On Windows, make sure `python` is a real install, not the Microsoft
   Store alias stub.
+- **After installing or updating the plugin, start a fresh session**
+  (or `/restart` the current one). Hooks bind at session creation —
+  a resumed session keeps the hook registration it started with, so
+  commands will chat back happily while the panel stays dark.
 
   </div>
 

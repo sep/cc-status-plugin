@@ -30,3 +30,8 @@ broker.log
 # but if someone accidentally drops a copy during debugging, we ignore it)
 /sessions/
 /data/
+
+# Per-developer agent settings (personal permission grants, machine paths).
+# The `.local` variants are personal by convention — never track them.
+.claude/settings.local.json
+.copilot/settings.local.json
