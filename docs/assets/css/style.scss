@@ -1,0 +1,148 @@
+---
+# Front matter is required so Jekyll picks this file up and converts the
+# SCSS to CSS at build time. The Cayman theme's default.html layout
+# pulls /assets/css/style.css automatically.
+---
+
+// ---------------------------------------------------------------------------
+// SEP brand skin over jekyll-theme-cayman.
+//
+// Tokens come from SEP's corporate palette (same values as sep.com's
+// SEP2025 theme). Kept in sync by hand across the three ClaudePanel
+// repos — cc-status-plugin, cc-status-bridge, cc-status-display — so a
+// change here should usually be copied to the sibling style.scss files.
+//
+// Font: Public Sans everywhere (headlines 500, body 400, emphasis 600).
+// ---------------------------------------------------------------------------
+
+@import url("https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap");
+
+// ---- SEP palette tokens ----------------------------------------------------
+$sep-ink:            #0e1425;  // dark backgrounds, primary dark text
+$sep-snow:           #fbfcfe;  // light backgrounds, text on dark
+$sep-blue-dark:      #1b2a4b;
+$sep-blue-main:      #294175;  // primary — start here for everything
+$sep-blue-mid:       #9ab2e4;
+$sep-blue-light:     #bccef5;
+$sep-blue-lightest:  #e7edfd;
+$sep-blue-link:      #466cbe;  // sep.com's text-secondary; link color
+$sep-violet-main:    #513986;  // first accent
+$sep-violet-mid:     #9c7edd;
+$sep-gold:           #ffd375;  // highlight, use sparingly
+$sep-gray-mid:       #6f6f72;
+$sep-gray-dark:      #4a4b4c;
+
+// ---- Cayman variable overrides (must precede the theme import) -------------
+$header-heading-color:      $sep-snow;
+$header-bg-color:           $sep-blue-main;   // gradient end
+$header-bg-color-secondary: $sep-ink;         // gradient start
+$section-headings-color:    $sep-blue-main;
+$body-text-color:           $sep-ink;
+$body-link-color:           $sep-blue-link;
+$blockquote-text-color:     $sep-gray-mid;
+$code-bg-color:             #f1f5fe;          // blue-050
+$code-text-color:           #223762;          // blue-800
+$border-color:              $sep-blue-lightest;
+$table-border-color:        $sep-blue-lightest;
+$hr-border-color:           $sep-blue-lightest;
+
+@import "{{ site.theme }}";
+
+// ---- Typography: Public Sans everywhere ------------------------------------
+body {
+  font-family: "Public Sans", Arial, sans-serif;
+  font-weight: 400;
+}
+
+h1, h2, h3, h4, h5, h6,
+.project-name {
+  font-family: "Public Sans", Arial, sans-serif;
+  font-weight: 500;
+}
+
+strong { font-weight: 600; }
+
+// ---- Page header: hexagon motif over the Ink→Blue gradient -----------------
+// Hexagons are SEP's signature decorative element; a faint outlined
+// tile keeps the header unmistakably SEP without fighting the text.
+.page-header {
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='84' viewBox='0 0 96 84'%3E%3Cpath d='M48 14 72 28v28L48 70 24 56V28z' fill='none' stroke='%23fbfcfe' stroke-opacity='0.07' stroke-width='1.5'/%3E%3C/svg%3E"),
+    linear-gradient(120deg, $sep-ink, $sep-blue-main);
+}
+
+.sep-header-logo {
+  display: inline-block;
+  margin-bottom: 1.1rem;
+
+  img {
+    height: 26px;
+    width: auto;
+    display: block;
+    margin: 0 auto;
+    opacity: 0.95;
+  }
+}
+
+.project-tagline { opacity: 0.85; }
+
+// ---------------------------------------------------------------------------
+// .btn override for the page body.
+//
+// Cayman's stock .btn is white-on-translucent-white — designed to sit on
+// the dark page-header gradient. Inside the white .main-content body the
+// buttons are invisible. Override only when nested under .main-content so
+// the header "View on GitHub" buttons stay untouched.
+// ---------------------------------------------------------------------------
+.main-content {
+  .btn {
+    color: $sep-snow;
+    background-color: $sep-blue-main;
+    border-color: $sep-blue-main;
+
+    &:hover {
+      color: $sep-snow;
+      background-color: $sep-blue-dark;
+      border-color: $sep-blue-dark;
+    }
+  }
+}
+
+// ---- Section divider: gradient rule with a centered hexagon ----------------
+// The hexagon's fill matches the page background so it reads as a gap in
+// the rule rather than a badge sitting on it.
+// Selector carries .main-content so it out-specifies Cayman's
+// `.main-content hr` (which would otherwise win on height/margin).
+.main-content hr.section-divider {
+  border: 0;
+  height: 20px;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='20' viewBox='0 0 18 20'%3E%3Cpath d='M9 1.5 16 5.75v8.5L9 18.5 2 14.25v-8.5z' fill='%23ffffff' stroke='%239c7edd' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat center,
+    linear-gradient(90deg, transparent 0%, $sep-blue-light 18%, $sep-blue-main 50%, $sep-blue-light 82%, transparent 100%) no-repeat center / 100% 2px;
+  margin: 4rem auto 3rem;
+  max-width: 60%;
+}
+
+// ---- SEP footer -------------------------------------------------------------
+.sep-footer {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: solid 1px $sep-blue-lightest;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 1rem;
+  font-size: 0.9rem;
+  color: $sep-gray-dark;
+
+  img {
+    height: 20px;
+    width: auto;
+    display: block;
+  }
+
+  .sep-footer-tagline {
+    font-weight: 600;
+    color: $sep-blue-main;
+  }
+}

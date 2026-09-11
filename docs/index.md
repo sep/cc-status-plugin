@@ -18,7 +18,7 @@ the tested example.
 <img src="assets/panel-idle-desk.jpg"
      alt="ClaudePanel on a desk beside a laptop: a 64×32 LED matrix showing IDLE in green dot-matrix letters, ringed by a cyan border, while someone types on the laptop behind it."
      style="border-radius: 8px; box-shadow: 0 4px 18px rgba(0,0,0,0.25);">
-<p style="text-align: center; font-size: 0.85rem; color: #6a737d; margin-top: 0.5rem;"><em>Turn finished — the panel goes green while you're the bottleneck.</em></p>
+<p style="text-align: center; font-size: 0.85rem; color: #6f6f72; margin-top: 0.5rem;"><em>Turn finished — the panel goes green while you're the bottleneck.</em></p>
 
 <style>
   /* ---- feature cards (the three "panelly" buttons) ---- */
@@ -42,23 +42,24 @@ the tested example.
     overflow: hidden;
     text-decoration: none !important;
     color: #fff !important;
-    background-color: #1f2933;
-    background-size: cover;
-    background-position: center;
+    background-color: #1b2a4b;
+    background-repeat: no-repeat;
+    background-size: auto 150px;
+    background-position: right -18px top -18px;
     transition: transform 0.18s ease, box-shadow 0.18s ease;
     text-align: left;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
   }
-  /* dark + green gradient overlay so text stays readable
-     regardless of which photo loremflickr happens to hand back */
+  /* Ink fade toward the caption edge so the text stays readable where
+     it overlaps the illustration */
   .feature-card::before {
     content: '';
     position: absolute;
     inset: 0;
     background: linear-gradient(
-      135deg,
-      rgba(15, 32, 28, 0.78) 0%,
-      rgba(21, 153, 87, 0.55) 100%
+      180deg,
+      rgba(14, 20, 37, 0.1) 0%,
+      rgba(14, 20, 37, 0.8) 75%
     );
     transition: opacity 0.18s ease;
     z-index: 1;
@@ -66,7 +67,7 @@ the tested example.
   .feature-card > * { position: relative; z-index: 2; }
   .feature-card:hover {
     transform: translateY(-3px);
-    box-shadow: 0 6px 18px rgba(21, 153, 87, 0.28);
+    box-shadow: 0 6px 18px rgba(156, 126, 221, 0.35);
   }
   .feature-card:hover::before { opacity: 0.85; }
   .feature-card .feature-card-title {
@@ -85,35 +86,23 @@ the tested example.
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
   }
 
-  /* ---- section dividers ---- */
-  .section-divider {
-    border: 0;
-    height: 3px;
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      #159957 50%,
-      transparent 100%
-    );
-    margin: 4rem auto 3rem;
-    max-width: 60%;
-    border-radius: 2px;
-  }
+  /* .section-divider is styled by the shared SEP brand stylesheet
+     (assets/css/style.scss) */
 </style>
 
 <div class="feature-cards">
   <a class="feature-card" href="#the-panel"
-     style="background-image: url('https://loremflickr.com/600/300/led,matrix,pixel');">
+     style="background-image: url('assets/img/sep-illo-embedded-light.svg');">
     <span class="feature-card-title">The Panel</span>
     <span class="feature-card-sub">What you see, and what each state means.</span>
   </a>
   <a class="feature-card" href="#installation"
-     style="background-image: url('https://loremflickr.com/600/300/circuit,electronics,solder');">
+     style="background-image: url('assets/img/sep-illo-development-light.svg');">
     <span class="feature-card-title">Installation</span>
     <span class="feature-card-sub">Firmware → bridge → plugin, in that order.</span>
   </a>
   <a class="feature-card" href="#how-it-works"
-     style="background-image: url('https://loremflickr.com/600/300/network,data,signal');">
+     style="background-image: url('assets/img/sep-illo-data-light.svg');">
     <span class="feature-card-title">How it works</span>
     <span class="feature-card-sub">From prompt to pixels in three hops.</span>
   </a>
@@ -140,7 +129,7 @@ distinguishable at a glance from across a desk:
 <img src="assets/panel-blocked.jpg"
      alt="The panel showing BLOCKED in red dot-matrix letters with a red-and-blue alternating border — the agent is waiting on a permission prompt. Small dot clusters along the bottom edge show activity counters."
      style="border-radius: 8px; box-shadow: 0 4px 18px rgba(0,0,0,0.25); margin-top: 0.75rem;">
-<p style="text-align: center; font-size: 0.85rem; color: #6a737d; margin-top: 0.5rem;"><em>blocked — the agent wants a permission decision and you're across the room.</em></p>
+<p style="text-align: center; font-size: 0.85rem; color: #6f6f72; margin-top: 0.5rem;"><em>blocked — the agent wants a permission decision and you're across the room.</em></p>
 
 Alongside the state, the panel also shows running counts of subagents
 and active tasks — handy when you've kicked off parallel work and want
@@ -276,7 +265,7 @@ Pick your host for the specifics:
   #tab-copilot:checked   ~ .host-tab-labels label[for="tab-copilot"],
   #tab-vscode:checked    ~ .host-tab-labels label[for="tab-vscode"],
   #tab-jetbrains:checked ~ .host-tab-labels label[for="tab-jetbrains"] {
-    background: #fff; color: #159957; border-color: #159957;
+    background: #fff; color: #294175; border-color: #294175;
     border-bottom: 1px solid #fff; margin-bottom: -1px; position: relative; z-index: 1;
   }
   #tab-claude:checked    ~ #panel-claude,
