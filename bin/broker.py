@@ -15,6 +15,8 @@ bridge can label the session for a human (see the bridge repo's
 MANAGEMENT.md). Readers must tolerate its absence.
 Broker self-terminates after IDLE_EXIT_SECONDS of no events and no subscribers.
 """
+from __future__ import annotations
+
 import asyncio
 import json
 import os

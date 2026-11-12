@@ -13,6 +13,8 @@ directory, or the working directory itself outside a repo); there is
 no global scope, so this must be re-run once per repo.
 """
 
+from __future__ import annotations
+
 import json
 import os
 import sys

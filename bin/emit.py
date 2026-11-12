@@ -9,6 +9,8 @@ hook_event_name, and publishes one NDJSON line to the session's broker
 Designed to be fast and never block Claude on failures: any error
 results in exit 0 with a message to stderr.
 """
+from __future__ import annotations
+
 import json
 import os
 import re

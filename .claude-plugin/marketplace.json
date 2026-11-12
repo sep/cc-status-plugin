@@ -8,7 +8,7 @@
       "name": "llmstatus",
       "source": "./",
       "description": "Publish agent lifecycle events to a local TCP/NDJSON broker. Works with Claude Code and any agent implementing its plugin architecture (e.g. GitHub Copilot CLI).",
-      "version": "0.5.1"
+      "version": "0.5.2"
     }
   ]
 }

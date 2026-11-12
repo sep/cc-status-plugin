@@ -117,9 +117,13 @@ surface, which is what makes dual support cheap. What we lean on:
 
 ### Python (stdlib only)
 
-- **Currently exercised:** Python 3.7+ surface (`pathlib`,
+- **Currently exercised:** Python 3.8+ surface (`pathlib`,
   `subprocess`, `socket`, `json`, `asyncio`, `dataclasses`,
-  `sys.stdout.reconfigure`).
+  `sys.stdout.reconfigure`). Every script starts with
+  `from __future__ import annotations` — the sources use `X | None` and
+  builtin generics in annotations, which Python < 3.10 would otherwise
+  evaluate (and reject) at import. Keep that line; a 3.9 macOS broke
+  every hook when it was missing (v0.5.2).
 - **Pinned:** invocations use `python` (not `python3`) to be
   cross-platform-friendly — Windows Python installers only put
   `python.exe` on PATH, while modern Linux/macOS treat `python` as

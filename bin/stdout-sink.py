@@ -8,6 +8,8 @@ Usage:
                                    subscribe. Useful for external validation
                                    when CLAUDE_PLUGIN_DATA isn't inherited.
 """
+from __future__ import annotations
+
 import json
 import os
 import socket

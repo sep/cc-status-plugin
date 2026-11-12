@@ -23,6 +23,8 @@ directly for testing):
   pin.py configure <count> [k=v ...]    Panel layout
   pin.py status                         Print routes + panel layout
 """
+from __future__ import annotations
+
 import json
 import os
 import re
