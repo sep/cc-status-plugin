@@ -7,7 +7,12 @@ Protocol per connection:
   PUB connections: subsequent lines are JSON events, fanned out to all subscribers.
   SUB connections: receive fanned-out events until they disconnect.
 
-State file: <data_dir>/sessions/<session_id>/broker.json holds {"pid": N, "port": N}.
+State file: <data_dir>/sessions/<session_id>/broker.json holds
+  {"pid": N, "port": N, "session_id": "...", "platform": "...",
+   "started_at": <unix seconds>, "cwd": "<session working dir, once known>"}
+`cwd` is copied from the first published event that carries one, so a
+bridge can label the session for a human (see the bridge repo's
+MANAGEMENT.md). Readers must tolerate its absence.
 Broker self-terminates after IDLE_EXIT_SECONDS of no events and no subscribers.
 """
 import asyncio
@@ -112,6 +117,9 @@ class Broker:
         self.subscribers: set[asyncio.StreamWriter] = set()
         self.last_activity = time.time()
         self.last_event: bytes | None = None
+        self.port = 0
+        self.started_at = time.time()
+        self.cwd: str | None = None
 
     async def handle_client(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         try:
@@ -163,6 +171,14 @@ class Broker:
                 evt = json.loads(line)
             except Exception:
                 evt = None
+            # Session label support: the first event carrying `cwd` (every
+            # hook event does, on both hosts) gets it stamped into
+            # broker.json so the bridge can show "which session is this".
+            if isinstance(evt, dict):
+                cwd = evt.get("cwd")
+                if isinstance(cwd, str) and cwd and cwd != self.cwd and self.port:
+                    self.cwd = cwd
+                    self._write_state(self.port)
             if (
                 isinstance(evt, dict)
                 and evt.get("event") == "SessionEnd"
@@ -235,12 +251,17 @@ class Broker:
                 pass
 
     def _write_state(self, port: int) -> None:
-        payload = json.dumps({
+        self.port = port
+        state = {
             "pid": os.getpid(),
             "port": port,
             "session_id": self.session_id,
             "platform": platform_tag(),
-        })
+            "started_at": self.started_at,
+        }
+        if self.cwd:
+            state["cwd"] = self.cwd
+        payload = json.dumps(state)
         tmp = self.state_file.with_suffix(".tmp")
         tmp.write_text(payload)
         os.replace(tmp, self.state_file)

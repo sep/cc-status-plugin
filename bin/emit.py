@@ -145,6 +145,7 @@ def _debug_log(record: dict) -> None:
 
 
 _FORWARDED_FIELDS = (
+    "cwd",
     "prompt",
     "message",
     "title",
